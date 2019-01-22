@@ -32,9 +32,9 @@ gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
 # set path to datasets
 # **EK: what is the difference between the function 'paste0' and 'paste'? why did I use paste0 here?
 # **can query help on function by typing in console ?[function name](), e.g. ?paste0()
-bos_datpath <- paste0(gdrive, "/KelmanProject/Data/tgsna_monitoring_19912016.csv")
+bos_datpath <-paste0(gdrive, "/KelmanProject/Data/tgsna_monitoring_19912016.csv")
 # there are two trait datasets in Kelman Project? reading one from data folder with more recent timestamp
-trait_datpath <- paste0(gdrive, "/KelmanProject/Data/Trait_species_list_veg_dormancy.xlsx")
+trait_datpath <-paste0(gdrive, "/KelmanProject/Data/Trait_species_list_veg_dormancy.xlsx")
 
 #read in datasets
 bos_dat <- read_csv(bos_datpath)
@@ -76,13 +76,17 @@ trait_dat[!trait_dat$`Species code` %in% bos_species, c("Species", "Genus")]
 
 #assign column to cover_dat to indicate whether species in trait dataset
 ## **EK: look up help on 'ifelse' to see what it does, what its terms are
-cover_dat$trait_sp <- ifelse(cover_dat$OSMP_Code %in% trait_species, 1, 0)
-
+cover_dat$trait_sp <- ifelse(cover_dat$OSMP_Code %in% trait_species, "yes", "no")
+correctspeciesname <-c("ambpsic", "carpenh", "helrigs", "tradubm")
+cover_dat$trait_sp <- ifelse(cover_dat$OSMP_Code %in% correctspeciesname, "yes", cover_dat$trait_sp)
 
 # summarize cover dataset by what's in trait dataset vs what's not in trait dataset
 # each area-transect combo, per year, should have 2 rows: total cover for trait species and total cover for not-trait-species
 # start you code here and assign issue when you get stuck...
-
+grpd_cover <- cover_dat %>% 
+  mutate(transect_ID = paste(Area, Transect,sep = "_")) %>%
+  group_by(Year, transect_ID, trait_sp) %>%
+  summarize(summed_cover = sum(Cov_freq_val))
 
 
 
@@ -94,4 +98,9 @@ cover_dat$trait_sp <- ifelse(cover_dat$OSMP_Code %in% trait_species, 1, 0)
 ## **EK: try on your own once you have the summarize cover dataset made
 ## ** if you get stuck we can try troubleshooting via GitHub and/or work on it together next Tuesday
 
-       
+ggplot(grpd_cover, aes(x=trait_sp, y=summed_cover)) +
+  geom_col() +
+  #facet_wrap(~transect_ID) +
+  facet_grid(transect_ID ~ Year)
+  
+  
