@@ -100,7 +100,17 @@ grpd_cover <- cover_dat %>%
 
 ggplot(grpd_cover, aes(x=trait_sp, y=summed_cover)) +
   geom_col() +
-  #facet_wrap(~transect_ID) +
+  facet_wrap(~transect_ID) +
   facet_grid(transect_ID ~ Year)
+
+ggplot(grpd_cover, aes(x=Year, y=summed_cover)) +
+  geom_col() +
+  facet_wrap(~Year)
+
+ggplot(grpd_cover, aes(Year, y=summed_cover)) +
+  geom_col()
+
+
+  
   
   
