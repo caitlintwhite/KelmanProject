@@ -25,8 +25,8 @@ library(readxl) # for reading in excel workbooks
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-#gdrive <- "../Google\ Drive" #ctw path
+#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+gdrive <- "../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 # set path to datasets
@@ -39,7 +39,6 @@ trait_datpath <-paste0(gdrive, "/KelmanProject/Data/Trait_species_list_veg_dorma
 #read in datasets
 bos_dat <- read_csv(bos_datpath)
 trait_dat <- read_xlsx(trait_datpath)
-
 
 
 # --- PREP DATASETS FOR ANALYSIS -----
@@ -73,12 +72,20 @@ trait_dat[!trait_dat$`Species code` %in% bos_species, c("Species", "Genus")]
 ## What can we do if they actually are? What correction needs to be made?
 
 
-
 #assign column to cover_dat to indicate whether species in trait dataset
 ## **EK: look up help on 'ifelse' to see what it does, what its terms are
 cover_dat$trait_sp <- ifelse(cover_dat$OSMP_Code %in% trait_species, "yes", "no")
-correctspeciesname <-c("ambpsic", "carpenh", "helrigs", "tradubm")
+# correct for species in BOS dataset that have different species codes than in trait dataset
+correctspeciesname <-c("ambpsic", "carpenh", "helrigs", "tradubm") #OSMP codes that are trait dataset species (but mismatch with trait dataset code names)
 cover_dat$trait_sp <- ifelse(cover_dat$OSMP_Code %in% correctspeciesname, "yes", cover_dat$trait_sp)
+#make correction for juncus arcticus codes being different in trait dataset vs. OSMP dataset
+cover_dat$trait_sp <- ifelse(cover_dat$OSMP_Code == "junarca", "yes", cover_dat$trait_sp)
+# correct scientific name for junarc (is NA in OSMP dataset)
+cover_dat$OSMPSciName <-  ifelse(cover_dat$OSMP_Code == "junarc", 
+                                               # if yes, match OSMP scientific name for code junarca
+                                               unique(cover_dat$OSMPSciName[cover_dat$OSMP_Code == "junarca"]), 
+                                               # if not, leave as is
+                                               cover_dat$OSMPSciName)
 
 # summarize cover dataset by what's in trait dataset vs what's not in trait dataset
 # each area-transect combo, per year, should have 2 rows: total cover for trait species and total cover for not-trait-species
@@ -89,10 +96,6 @@ grpd_cover <- cover_dat %>%
   summarize(summed_cover = sum(Cov_freq_val))
 
 
-
-
-
-
 # ------ EXPLORATORY ANALYSIS -----
 # make visual summary using ggplot
 ## **EK: try on your own once you have the summarize cover dataset made
@@ -100,17 +103,133 @@ grpd_cover <- cover_dat %>%
 
 ggplot(grpd_cover, aes(x=trait_sp, y=summed_cover)) +
   geom_col() +
-  facet_wrap(~transect_ID) +
   facet_grid(transect_ID ~ Year)
 
-ggplot(grpd_cover, aes(x=Year, y=summed_cover)) +
+ggplot(grpd_cover, aes(x=trait_sp, y=summed_cover)) +
   geom_col() +
   facet_wrap(~Year)
 
 ggplot(grpd_cover, aes(Year, y=summed_cover)) +
-  geom_col()
+  geom_point() +
+  facet_wrap(~transect_ID)
 
 
-  
-  
-  
+# -- CTW ADDED FIGURES -----
+# ** EK: look at the code for one plot and try to figure out what each line is doing (use ? helper in console, or google the command)
+# we can talk about lines of code you're not sure about. ggplot standard for a "grammar of graphics", so with each line you add on an additional graphical component to the plot
+totcov_fig <- ggplot(grpd_cover, aes(Year, summed_cover)) +
+  geom_col(aes(col = trait_sp, fill = trait_sp)) +
+  labs(y = "Transect total cover (%)",
+       title = "Total cover is captured well by trait species in some transects, in some years, but not universally") + # plot titles describe not just what's plotted, but also what the fig suggests (succinctly)+
+  scale_color_manual(name = NULL, values = c("no" = "orchid2", "yes" = "royalblue3"), guide_legend(NULL)) +
+  scale_fill_manual(name = "In trait\ndatabase?", values = c("no" = "mistyrose2", "yes" = "steelblue2")) +
+  facet_wrap(~transect_ID) +
+  theme_bw() +
+  theme(legend.title = element_text(size = 9))
+
+totcov_fig
+
+# if we want to see relative cover, we can group the dataset one step further before plotting
+# instead of creating new data frame of newly aggregated dataset, can pipe it to ggplot
+relcov_fig <- grpd_cover %>%
+  group_by(Year, transect_ID) %>%
+  mutate(total_cover = sum(summed_cover)) %>%
+  ungroup() %>%
+  group_by(Year, transect_ID, trait_sp) %>%
+  summarize(relative_cover = summed_cover/total_cover) %>%
+  ggplot(aes(Year, relative_cover, group = transect_ID, col = trait_sp)) +
+  geom_hline(aes(yintercept = .50), col = "grey40", lwd = 1.5, alpha = .3) +
+  geom_point() +
+  labs(y = "Transect relative cover (%)",
+       title = "Trait species capture close to majority* of total cover in some area 7 transects",
+       subtitle = "*grey line demarcates 50 percent relative cover threshold") + # plot titles describe not just what's plotted, but also what the fig suggests (succinctly)+
+  scale_color_manual(name = "In trait\ndatabase?", values = c("no" = "orchid2", "yes" = "royalblue3")) +
+  #scale_fill_manual(name = "In trait database?", values = c("no" = "mistyrose2", "yes" = "steelblue2")) +
+  facet_wrap(~transect_ID) +
+  theme_bw() +
+  theme(legend.title = element_text(size = 9))
+
+relcov_fig
+
+# in the way we calculated the grouped_cover dataset, we summed all vertical hits on the transect
+# multiple hits could be recorded if the vegetation was layered (e.g. grass over forb over another forb; shrub over grass over forb, etc.)
+# what if we only consider the first hit species?
+# we'll need to start with the cover dataset again to subset only first hit cover (Frst_hit == "Yes")
+firstcov_fig <- cover_dat %>%
+  subset(Frst_hit == "Yes") %>%
+  # then aggregate (summarize) as we did about for grouped_cover and pipe to ggpplot
+  mutate(transect_ID = paste(Area, Transect,sep = "_")) %>%
+  group_by(Year, transect_ID, trait_sp) %>%
+  summarize(cover_tophit = sum(Cov_freq_val)) %>%
+  # left_join(grpd_cover) %>%
+  # mutate(delta = summed_1st_cover - summed_cover) # to look at difference of removing non-first-hit cover
+  ggplot(aes(Year, cover_tophit)) +
+  geom_col(aes(col = trait_sp, fill = trait_sp)) +
+  labs(y = "Transect total cover (%)",
+       title = "Transect total cover, by species in and not in trait dataset, first hit only",
+       subtitle = "Considering top hit only doesn't seem to improve transect cover captured by trait species") + # plot titles describe not just what's plotted, but also what the fig suggests (succinctly)+
+  scale_color_manual(name = NULL, values = c("no" = "orchid2", "yes" = "royalblue3"), guide_legend(NULL)) +
+  scale_fill_manual(name = "In trait\ndatabase?", values = c("no" = "mistyrose2", "yes" = "steelblue2")) +
+  facet_wrap(~transect_ID) +
+  theme_bw() +
+  theme(legend.title = element_text(size = 9))
+
+firstcov_fig
+
+# assume we pursue the community wgtd mean analysis only selecting some transects where trait species capture a majority of cover over time
+# we can plotaverage cover over time, by transect, to inspect which transects pass our cover criterion (whatever JL [or EK!] thinks is appropriate)
+# let's keep this dataset as a separate object bc we might want to make multiple figures from it
+temporal_meancover <- grpd_cover %>% # start with grpd_cover since it didn't seem like subsetting to first hit made any difference
+  group_by(transect_ID, trait_sp) %>% # we're going to average over time, so take out Year as a grouping variable
+  summarize(avg_cover = mean(summed_cover),
+            nobs = length(Year),
+            std_dev = sd(summed_cover),
+            std_error = std_dev/sqrt(nobs))
+
+# temporal mean by site, split by species in trait dataset/not in trait dataset  
+meancov_fig <- ggplot(temporal_meancover, aes(avg_cover, transect_ID)) +
+  geom_vline(aes(xintercept = 50), lty = 2) +
+  geom_errorbarh(aes(xmax = avg_cover + std_error, xmin = avg_cover - std_error, col = trait_sp)) + #col = "grey40"
+  geom_point(aes(fill = trait_sp), pch=21, size = 2, alpha = 0.7) +
+  labs(y = "Transect", x = "Temporal mean cover (%)",
+       title = "Temporal mean transect cover (1991-2016), by species in and not in trait dataset, by site",
+       subtitle = "Mean of summed species cover, bars show ±1 standard error") +
+  scale_fill_manual(name = "In trait database?", values = c("no" = "orchid2", "yes" = "royalblue3")) +
+  scale_color_discrete(guide = "none") +
+  theme_light() +
+  theme(legend.title = element_text(size = 8))
+
+meancov_fig
+
+# what about cover of individual trait dataset species over space and time?
+# similary, instead of creating a new dataset, we can just aggregate the cover dataset as we want and then pipe it to ggplot
+spcov_fig <- cover_dat %>% # start with this dataset, and continue pipe..
+  subset(trait_sp == "yes") %>%
+  mutate(transect_ID = paste(Area, Transect,sep = "_")) %>% # change NA in junarc to "Juncus arcticus"
+  group_by(Year, transect_ID, OSMP_Code, OSMPSciName) %>%
+  summarise(summed_cover = sum(Cov_freq_val)) %>%
+  ungroup() %>%
+  group_by(Year, OSMP_Code, OSMPSciName) %>%
+  summarise(total_cover = sum(summed_cover),
+            nobs = length(transect_ID)) %>%
+  mutate(short_sciname = gsub(" var.+| ssp.+", "", OSMPSciName)) %>% # remove varietal or sub-species names for plotting
+  ggplot(aes(Year, total_cover)) +
+  geom_point(alpha = 0.5) +
+  labs(y = "Total cover (%)",
+       title = "BOS xeric tallgrass regional summed cover (all transects), by trait dataset species, by year") +
+  facet_wrap(~short_sciname, labeller = label_wrap_gen(width = 20)) +
+  theme_light() +
+  theme(strip.text.x = element_text(face = "italic"))
+
+spcov_fig
+
+
+# -- WRITE OUT FIGURES ----
+# save figures to GitHub repo: exploratory_analysis/figures folder
+ggsave("./exploratory_analysis/figures/BOS_totalcover.pdf", totcov_fig)
+ggsave("./exploratory_analysis/figures/BOS_firsthit_cover.pdf", firstcov_fig)
+ggsave("./exploratory_analysis/figures/BOS_relativecover.pdf", relcov_fig)
+ggsave("./exploratory_analysis/figures/BOS_trait_indsp_cov.pdf", spcov_fig, scale = 1.35)
+
+
+
