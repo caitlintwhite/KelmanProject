@@ -86,8 +86,11 @@ cover_dat$OSMPSciName <-  ifelse(cover_dat$OSMP_Code == "junarc",
                                                unique(cover_dat$OSMPSciName[cover_dat$OSMP_Code == "junarca"]), 
                                                # if not, leave as is
                                                cover_dat$OSMPSciName)
-#created subset of vegetation cover to remove rock, standing dead, and litter 
-vegcoverdat <- subset(cover_dat, !OSMP_Code== "litter")
+#trying to create subset of vegetation cover to remove rock, standing dead, and litter 
+vegcoverdat <- subset(cover_dat, !OSMP_Code == "rock", "baregd")
+
+
+
 #check to see no standing dead or rock in remaining data 
 unique(vegcoverdat$OSMP_Code)
 
