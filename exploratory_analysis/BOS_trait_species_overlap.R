@@ -86,6 +86,15 @@ cover_dat$OSMPSciName <-  ifelse(cover_dat$OSMP_Code == "junarc",
                                                unique(cover_dat$OSMPSciName[cover_dat$OSMP_Code == "junarca"]), 
                                                # if not, leave as is
                                                cover_dat$OSMPSciName)
+#created subset of vegetation cover to remove rock, standing dead, and litter 
+vegcoverdat <- subset(cover_dat, !OSMP_Code== "litter")
+#check to see no standing dead or rock in remaining data 
+unique(vegcoverdat$OSMP_Code)
+
+vegcoverdat <- vegcoverdat %>%
+  group_by(Year, Area, Transect) %>%
+  mutate(RelCov = Cov_freq_val/sum(Cov_freq_val))
+
 
 # summarize cover dataset by what's in trait dataset vs what's not in trait dataset
 # each area-transect combo, per year, should have 2 rows: total cover for trait species and total cover for not-trait-species
