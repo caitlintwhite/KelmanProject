@@ -21,7 +21,8 @@
 
 #load needed libraries
 library(tidyverse)
-library(readxl) # for reading in excel workbooks
+library(readxl)# for reading in excel workbooks
+library(dplyr)
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
@@ -87,13 +88,16 @@ cover_dat$OSMPSciName <-  ifelse(cover_dat$OSMP_Code == "junarc",
                                                # if not, leave as is
                                                cover_dat$OSMPSciName)
 #trying to create subset of vegetation cover to remove rock, standing dead, and litter 
-vegcoverdat <- subset(cover_dat, !OSMP_Code == "rock", "baregd")
+remove <- c("rock", "litter", "baregd", "standing dead")
+
+vegcoverdat <- cover_dat %>%
+  filter(!OSMP_Code %in%remove)
 
 
-
-#check to see no standing dead or rock in remaining data 
+#check to see no standing dead, rock, litter, or baregd in remaining OSMP_Code vegcoverdat column 
 unique(vegcoverdat$OSMP_Code)
 
+#create a new column to quantify relative cover now that we've removed rock litter etc.
 vegcoverdat <- vegcoverdat %>%
   group_by(Year, Area, Transect) %>%
   mutate(RelCov = Cov_freq_val/sum(Cov_freq_val))
