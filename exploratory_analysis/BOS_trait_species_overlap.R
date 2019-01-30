@@ -107,7 +107,7 @@ vegcoverdat <- vegcoverdat %>%
 # each area-transect combo, per year, should have 2 rows: total cover for trait species and total cover for not-trait-species
 # start you code here and assign issue when you get stuck...
 grpd_cover <- cover_dat %>% 
-  subset(Lifeform != "Ground cover") %>%  # <-- **remove non-veg cover in one line of code ** 
+  subset(Lifeform != "Ground cover") %>%  # <-- **remove non-veg cover in one line of code. see Lifeform variable in bos_dat ** 
   mutate(transect_ID = paste(Area, Transect,sep = "_")) %>%
   group_by(Year, transect_ID, trait_sp) %>%
   summarize(summed_cover = sum(Cov_freq_val))
