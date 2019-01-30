@@ -20,9 +20,9 @@
 #**EK: you can use whatever names and characters you want for headers; i like to block sections so I can find them easily when looking through code 
 
 #load needed libraries
-library(tidyverse)
-library(readxl)# for reading in excel workbooks
-library(dplyr)
+library(tidyverse) # dplyr is in this package, no need to load separately
+library(readxl) # for reading in excel workbooks
+
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
@@ -91,7 +91,7 @@ cover_dat$OSMPSciName <-  ifelse(cover_dat$OSMP_Code == "junarc",
 remove <- c("rock", "litter", "baregd", "standing dead")
 
 vegcoverdat <- cover_dat %>%
-  filter(!OSMP_Code %in%remove)
+  dplyr::filter(!OSMP_Code %in%remove) #can specify you want the filter function from dplyr by using "dplyr::"
 
 
 #check to see no standing dead, rock, litter, or baregd in remaining OSMP_Code vegcoverdat column 
@@ -107,6 +107,7 @@ vegcoverdat <- vegcoverdat %>%
 # each area-transect combo, per year, should have 2 rows: total cover for trait species and total cover for not-trait-species
 # start you code here and assign issue when you get stuck...
 grpd_cover <- cover_dat %>% 
+  subset(Lifeform != "Ground cover") %>%  # <-- **remove non-veg cover in one line of code ** 
   mutate(transect_ID = paste(Area, Transect,sep = "_")) %>%
   group_by(Year, transect_ID, trait_sp) %>%
   summarize(summed_cover = sum(Cov_freq_val))
@@ -136,7 +137,7 @@ ggplot(grpd_cover, aes(Year, y=summed_cover)) +
 totcov_fig <- ggplot(grpd_cover, aes(Year, summed_cover)) +
   geom_col(aes(col = trait_sp, fill = trait_sp)) +
   labs(y = "Transect total cover (%)",
-       title = "Total cover is captured well by trait species in some transects, in some years, but not universally") + # plot titles describe not just what's plotted, but also what the fig suggests (succinctly)+
+       title = "Total vegetative cover is captured well by trait species in many transects across time, but not universally") + # plot titles describe not just what's plotted, but also what the fig suggests (succinctly)+
   scale_color_manual(name = NULL, values = c("no" = "orchid2", "yes" = "royalblue3"), guide_legend(NULL)) +
   scale_fill_manual(name = "In trait\ndatabase?", values = c("no" = "mistyrose2", "yes" = "steelblue2")) +
   facet_wrap(~transect_ID) +
@@ -157,7 +158,7 @@ relcov_fig <- grpd_cover %>%
   geom_hline(aes(yintercept = .50), col = "grey40", lwd = 1.5, alpha = .3) +
   geom_point() +
   labs(y = "Transect relative cover (%)",
-       title = "Trait species capture close to majority* of total cover in some area 7 transects",
+       title = "Trait species capture over majority* of relative total vegetation cover on many transects over time",
        subtitle = "*grey line demarcates 50 percent relative cover threshold") + # plot titles describe not just what's plotted, but also what the fig suggests (succinctly)+
   scale_color_manual(name = "In trait\ndatabase?", values = c("no" = "orchid2", "yes" = "royalblue3")) +
   #scale_fill_manual(name = "In trait database?", values = c("no" = "mistyrose2", "yes" = "steelblue2")) +
@@ -172,7 +173,7 @@ relcov_fig
 # what if we only consider the first hit species?
 # we'll need to start with the cover dataset again to subset only first hit cover (Frst_hit == "Yes")
 firstcov_fig <- cover_dat %>%
-  subset(Frst_hit == "Yes") %>%
+  subset(Frst_hit == "Yes" & Lifeform != "Ground cover") %>%
   # then aggregate (summarize) as we did about for grouped_cover and pipe to ggpplot
   mutate(transect_ID = paste(Area, Transect,sep = "_")) %>%
   group_by(Year, transect_ID, trait_sp) %>%
@@ -182,7 +183,7 @@ firstcov_fig <- cover_dat %>%
   ggplot(aes(Year, cover_tophit)) +
   geom_col(aes(col = trait_sp, fill = trait_sp)) +
   labs(y = "Transect total cover (%)",
-       title = "Transect total cover, by species in and not in trait dataset, first hit only",
+       title = "Transect vegetation total cover, by species in and not in trait dataset, first hit only",
        subtitle = "Considering top hit only doesn't seem to improve transect cover captured by trait species") + # plot titles describe not just what's plotted, but also what the fig suggests (succinctly)+
   scale_color_manual(name = NULL, values = c("no" = "orchid2", "yes" = "royalblue3"), guide_legend(NULL)) +
   scale_fill_manual(name = "In trait\ndatabase?", values = c("no" = "mistyrose2", "yes" = "steelblue2")) +
@@ -208,7 +209,7 @@ meancov_fig <- ggplot(temporal_meancover, aes(avg_cover, transect_ID)) +
   geom_errorbarh(aes(xmax = avg_cover + std_error, xmin = avg_cover - std_error, col = trait_sp)) + #col = "grey40"
   geom_point(aes(fill = trait_sp), pch=21, size = 2, alpha = 0.7) +
   labs(y = "Transect", x = "Temporal mean cover (%)",
-       title = "Temporal mean transect cover (1991-2016), by species in and not in trait dataset, by site",
+       title = "Temporal mean transect vegetative cover (1991-2016), by species in and not in trait dataset, by site",
        subtitle = "Mean of summed species cover, bars show ±1 standard error") +
   scale_fill_manual(name = "In trait database?", values = c("no" = "orchid2", "yes" = "royalblue3")) +
   scale_color_discrete(guide = "none") +
@@ -242,9 +243,13 @@ spcov_fig
 
 # -- WRITE OUT FIGURES ----
 # save figures to GitHub repo: exploratory_analysis/figures folder
-ggsave("./exploratory_analysis/figures/BOS_totalcover.pdf", totcov_fig)
-ggsave("./exploratory_analysis/figures/BOS_firsthit_cover.pdf", firstcov_fig)
-ggsave("./exploratory_analysis/figures/BOS_relativecover.pdf", relcov_fig)
+# can control output through using terms like width, height, units, and scale
+ggsave("./exploratory_analysis/figures/BOS_totalcover.pdf", totcov_fig,
+       width = 6, height = 4, units = "in", scale = 1.5)
+ggsave("./exploratory_analysis/figures/BOS_firsthit_cover.pdf", firstcov_fig,
+       width = 6, height = 4, units = "in", scale = 1.5)
+ggsave("./exploratory_analysis/figures/BOS_relativecover.pdf", relcov_fig,
+       width = 6, height = 4, units = "in", scale = 1.5)
 ggsave("./exploratory_analysis/figures/BOS_trait_indsp_cov.pdf", spcov_fig, scale = 1.35)
 
 
