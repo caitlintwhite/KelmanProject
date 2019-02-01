@@ -88,20 +88,22 @@ cover_dat$OSMPSciName <-  ifelse(cover_dat$OSMP_Code == "junarc",
                                                unique(cover_dat$OSMPSciName[cover_dat$OSMP_Code == "junarca"]), 
                                                # if not, leave as is
                                                cover_dat$OSMPSciName)
-#trying to create subset of vegetation cover to remove rock, standing dead, and litter 
-remove <- c("rock", "litter", "baregd", "standing dead")
-
-vegcoverdat <- cover_dat %>%
-  dplyr::filter(!OSMP_Code %in%remove) #can specify you want the filter function from dplyr by using "dplyr::"
 
 
-#check to see no standing dead, rock, litter, or baregd in remaining OSMP_Code vegcoverdat column 
-unique(vegcoverdat$OSMP_Code)
-
-#create a new column to quantify relative cover now that we've removed rock litter etc.
-vegcoverdat <- vegcoverdat %>%
-  group_by(Year, Area, Transect) %>%
-  mutate(RelCov = Cov_freq_val/sum(Cov_freq_val))
+# **Non-veg cover removed above; rel cover created below; commenting out this code
+# #trying to create subset of vegetation cover to remove rock, standing dead, and litter 
+# remove <- c("rock", "litter", "baregd", "standing dead")
+# 
+# vegcoverdat <- cover_dat %>%
+#   dplyr::filter(!OSMP_Code %in%remove) #can specify you want the filter function from dplyr by using "dplyr::"
+# 
+# #check to see no standing dead, rock, litter, or baregd in remaining OSMP_Code vegcoverdat column 
+# unique(vegcoverdat$OSMP_Code)
+# 
+# #create a new column to quantify relative cover now that we've removed rock litter etc.
+# vegcoverdat <- vegcoverdat %>%
+#   group_by(Year, Area, Transect) %>%
+#   mutate(RelCov = Cov_freq_val/sum(Cov_freq_val))
 
 
 # summarize cover dataset by what's in trait dataset vs what's not in trait dataset
@@ -214,12 +216,12 @@ temporal_meancover <- grpd_cover %>% # start with grpd_cover since it didn't see
 
 # temporal mean by site, split by species in trait dataset/not in trait dataset  
 meancov_fig <- ggplot(temporal_meancover, aes(avg_cover, transect_ID)) +
-  geom_vline(aes(xintercept = 50), lty = 2) +
+  geom_vline(aes(xintercept = mean(avg_cover)), lty = 2) + #will create dotted line at overall mean cover of trait spp and non trait spp mean cover
   geom_errorbarh(aes(xmax = avg_cover + std_error, xmin = avg_cover - std_error, col = trait_sp)) + 
   geom_point(aes(fill = trait_sp), pch=21, size = 2, alpha = 0.7) +
   labs(y = "Transect", x = "Temporal mean cover (%)",
        title = "Temporal mean transect vegetative cover (1991-2016), by species in and not in trait dataset, by site",
-       subtitle = "Mean of summed species cover, bars show ±1 standard error") +
+       subtitle = "Mean of summed species cover, bars show ±1 standard error, dotted line = grand mean") +
   scale_fill_manual(name = "In trait database?", values = c("no" = "orchid2", "yes" = "royalblue3")) +
   scale_color_discrete(guide = "none") +
   theme_light() +
