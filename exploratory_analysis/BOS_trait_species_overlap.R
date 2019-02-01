@@ -26,8 +26,8 @@ library(readxl) # for reading in excel workbooks
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-gdrive <- "../../Google\ Drive" #ctw path
+gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+#gdrive <- "../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 # set path to datasets
@@ -50,7 +50,8 @@ summary(bos_dat)
 glimpse(trait_dat)
 
 # subset datasets to what's needed for analysis
-cover_dat <- subset(bos_dat, DataType == "COVER")
+cover_dat <- subset(bos_dat, DataType == "COVER" & Lifeform!="Ground cover")
+
 
 
 #what species in trait dataset are in bos dataset (without data cleaning)
@@ -110,8 +111,13 @@ grpd_cover <- cover_dat %>%
   subset(Lifeform != "Ground cover") %>%  # <-- **remove non-veg cover in one line of code. see Lifeform variable in bos_dat ** 
   mutate(transect_ID = paste(Area, Transect,sep = "_")) %>%
   group_by(Year, transect_ID, trait_sp) %>%
-  summarize(summed_cover = sum(Cov_freq_val))
+  summarize(summed_cover = sum(Cov_freq_val)) %>%
+  ungroup() %>%
+  group_by(Year, transect_ID) %>%
+  mutate(total_cover = sum(summed_cover),
+         rel_cover = summed_cover/total_cover) 
 
+  
 
 # ------ EXPLORATORY ANALYSIS -----
 # make visual summary using ggplot
@@ -199,6 +205,7 @@ firstcov_fig
 temporal_meancover <- grpd_cover %>% # start with grpd_cover since it didn't seem like subsetting to first hit made any difference
   group_by(transect_ID, trait_sp) %>% # we're going to average over time, so take out Year as a grouping variable
   summarize(avg_cover = mean(summed_cover),
+            avg_relcover = mean(rel_cover),
             nobs = length(Year),
             std_dev = sd(summed_cover),
             std_error = std_dev/sqrt(nobs))
@@ -206,7 +213,7 @@ temporal_meancover <- grpd_cover %>% # start with grpd_cover since it didn't see
 # temporal mean by site, split by species in trait dataset/not in trait dataset  
 meancov_fig <- ggplot(temporal_meancover, aes(avg_cover, transect_ID)) +
   geom_vline(aes(xintercept = 50), lty = 2) +
-  geom_errorbarh(aes(xmax = avg_cover + std_error, xmin = avg_cover - std_error, col = trait_sp)) + #col = "grey40"
+  geom_errorbarh(aes(xmax = avg_cover + std_error, xmin = avg_cover - std_error, col = trait_sp)) + 
   geom_point(aes(fill = trait_sp), pch=21, size = 2, alpha = 0.7) +
   labs(y = "Transect", x = "Temporal mean cover (%)",
        title = "Temporal mean transect vegetative cover (1991-2016), by species in and not in trait dataset, by site",
@@ -252,5 +259,7 @@ ggsave("./exploratory_analysis/figures/BOS_relativecover.pdf", relcov_fig,
        width = 6, height = 4, units = "in", scale = 1.5)
 ggsave("./exploratory_analysis/figures/BOS_trait_indsp_cov.pdf", spcov_fig, scale = 1.35)
 
+
+write.csv(grpd_cover,paste0(gdrive, "/KelmanProject/Data/groupedcover.csv") )
 
 
