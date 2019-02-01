@@ -26,8 +26,8 @@ library(readxl) # for reading in excel workbooks
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-#gdrive <- "../../Google\ Drive" #ctw path
+#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+gdrive <- "../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 # set path to datasets
@@ -204,11 +204,13 @@ firstcov_fig
 # let's keep this dataset as a separate object bc we might want to make multiple figures from it
 temporal_meancover <- grpd_cover %>% # start with grpd_cover since it didn't seem like subsetting to first hit made any difference
   group_by(transect_ID, trait_sp) %>% # we're going to average over time, so take out Year as a grouping variable
-  summarize(avg_cover = mean(summed_cover),
-            avg_relcover = mean(rel_cover),
-            nobs = length(Year),
-            std_dev = sd(summed_cover),
-            std_error = std_dev/sqrt(nobs))
+  summarize(avg_cover = mean(summed_cover), # mean absolute cover
+            avg_relcover = mean(rel_cover), # mean relative cover
+            nobs = length(Year), # number of annual observations in the record per transect (i.e. number of times transect sampled)
+            std_dev = sd(summed_cover), #std dev of mean absolute cover
+            std_error = std_dev/sqrt(nobs), #std error of mean absolute cover
+            rel_sd = sd(summed_cover), # std dev of mean relative cover
+            rel_se = rel_sd/sqrt(nobs)) # std error of mean relative cover
 
 # temporal mean by site, split by species in trait dataset/not in trait dataset  
 meancov_fig <- ggplot(temporal_meancover, aes(avg_cover, transect_ID)) +
@@ -224,6 +226,14 @@ meancov_fig <- ggplot(temporal_meancover, aes(avg_cover, transect_ID)) +
   theme(legend.title = element_text(size = 8))
 
 meancov_fig
+
+# ** EK: you could add a plot here for mean RELATIVE cover (with error bars) over time
+
+#meanrel_fig <- ggplot(...) + ...
+
+
+#meanrel_fig
+
 
 # what about cover of individual trait dataset species over space and time?
 # similary, instead of creating a new dataset, we can just aggregate the cover dataset as we want and then pipe it to ggplot
@@ -257,6 +267,10 @@ ggsave("./exploratory_analysis/figures/BOS_firsthit_cover.pdf", firstcov_fig,
        width = 6, height = 4, units = "in", scale = 1.5)
 ggsave("./exploratory_analysis/figures/BOS_relativecover.pdf", relcov_fig,
        width = 6, height = 4, units = "in", scale = 1.5)
+ggsave("./exploratory_analysis/figures/BOS_mean_abscover.pdf", meancov_fig, 
+       width = 6, height = 4, units = "in", scale = 1.5)
+#ggsave("./exploratory_analysis/figures/BOS_mean_relcover.pdf", meanrel_fig, ## **EK: if make this figure, save to github/figures folder
+#       width = 6, height = 4, units = "in", scale = 1.5)
 ggsave("./exploratory_analysis/figures/BOS_trait_indsp_cov.pdf", spcov_fig, scale = 1.35)
 
 
