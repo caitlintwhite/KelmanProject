@@ -284,24 +284,41 @@ ggsave("./exploratory_analysis/figures/BOS_trait_indsp_cov.pdf", spcov_fig, scal
 
 write.csv(grpd_cover,paste0(gdrive, "/KelmanProject/Data/groupedcover.csv") )
 
+
+
+# --- CWM PREP -----
+#Community steps
+# 1) create common species code variable in BOS veg data that matches Julie's species codes
+# what spp codes in veg data match spp codes in mature trait data
+summary(unique(vegcoverdat$OSMP_Code) %in% unique(mature_traits$species)) 
+#what are the spp in mature trait set?
+sort(as.character(mature_traits$species))
+nchar(as.character(mature_traits$species))
+sort(unique(nchar(vegcoverdat$OSMP_Code)))
+# which spp have less than 6 characters?
+vegcoverdat$OSMP_Code[nchar(vegcoverdat$OSMP_Code)==5] # water, removed above in non-veg cover
+
+# create spp column in BOS dataset that matches julie's codes through string search
+trait_spp <- unique(as.character(mature_traits$species)) #not factors
+vegcoverdat$species <- substr(vegcoverdat$OSMP_Code,1,6) #this is the lazy way: just take first 6 characters of OSMP_Code
+
 #Formatting community data for community weighted means
 #1 subset data by area, transect, and cover type
-cover7_1<- subset(vegcoverdat, Area=="7" & Transect=="1" & DataType=="COVER" & Frst_hit=="Yes")
+cover7_1<- subset(vegcoverdat, Area=="7" & Transect=="1" & 
+                    DataType=="COVER" & Frst_hit=="Yes")
+cover7_1 <- cover7_1[cover7_1$species %in% trait_spp, ]
 
 #remove uneccesary columns in cover7_1 DF
-cover7_1 <- select(cover7_1, Year, OSMP_Code, Cov_freq_val)
+cover7_1 <- ungroup(cover7_1) %>% dplyr::select(Year, species, Cov_freq_val) %>% as.data.frame()
 cover7_1 <- cover7_1 [ , 3:5]
 
 #reformatting 7_1cover data by spreading species into individual columns
 cover7_1spread <- cover7_1 %>%
-  spread(key = OSMP_Code, value = Cov_freq_val)
+  spread(key = species, value = Cov_freq_val, fill =0) # fill replaces NAs with 0
+rownames(cover7_1spread) <- cover7_1spread$Year
+cover7_1spread <- cover7_1spread[ , 2:ncol(cover7_1spread)]
 
-#replace NAs with 0
-cover7_1spread [is.na(cover7_1spread)] <- 0
-
-#convert to relative abundances
-cover7_1spread <- column_to_rownames(cover7_1spread, var = "Year")
-
+# convert to relative abundance
 Relcov7_1 <- decostand(cover7_1spread, 'total')
 
 #check that relative abundances add to 1
@@ -310,3 +327,24 @@ sort(apply(Relcov7_1, 2, sum))
 
 #convert to matrix 
 Relcov7_1 <- as.matrix(Relcov7_1)
+
+# make fxn trait data frame
+fxnl_df <- mature_traits[ ,c(1, 10,12:14,17,18)] # use same fxnl trait df as used to subset spp in vegcoverdat
+fxnl_df <- fxnl_df[as.character(fxnl_df$species) %in% colnames(cover7_1spread),]
+rownames(fxnl_df) <- fxnl_df$species
+fxnl_df <- fxnl_df[,2:ncol(fxnl_df)] %>% as.matrix()
+
+functcomp(as.matrix(cover7_1spread), fxnl_df)
+
+#Trait steps
+trait_species <- unique(maturetraits$`species`)
+bos_species <- unique(cover7_1$OSMP_Code)
+table(trait_species %in% bos_species) #of trait spp, how many overlap with bos species?
+summary(bos_species %in% trait_species) #of bos pp, how many overlap with trait species?
+
+
+
+# which trait species are not in bos dataset?
+bos_species[which(!bos_species %in%trait_species )]
+# what are their scientific names?
+trait_dat[!trait_dat$`Species code` %in% bos_species, c("Species", "Genus")]
