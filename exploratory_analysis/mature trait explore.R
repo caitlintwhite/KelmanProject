@@ -10,6 +10,7 @@ library(tidyverse)
 library(readxl)
 install.packages("corrplot")
 library(corrplot)
+install.packages(FD)
 
 #set relative pathways to google drive, uncomment your path when working on script 
 gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
@@ -17,13 +18,15 @@ gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
 #gdrive <- jl
 
 #set pathway to mature trait dataset and read in 
-maturedatpath  <- read.csv(paste0(gdrive, "/KelmanProject/Data/traits_mature.csv"))
+maturetraits  <- read.csv(paste0(gdrive, "/KelmanProject/Data/traits_mature_w_seedmass.csv"))
 #read in mature trait dataset and update by removing uneccessary first column 
 maturetraits <- dat[ ,2:35]
 
 glimpse(maturetraits)
 summary(maturetraits)
 
+traitsubset <- maturetraits[ ,c(10,12:14,17,18,36)]
+pairs(traitsubset)
 #create a new column to quantify total increase in height. wanted to check that i correctly grouped the variables?
 maturetraits <- maturetraits %>%
   group_by(species) %>%
@@ -57,3 +60,4 @@ cor.test(maturetraits$LDMC, maturetraits$RDMC)
 
 cor.test(maturetraits$est_rootlength_m, maturetraits$final_canopyvol_cm3)
 #correlation coefficient .4858
+rm(dat)

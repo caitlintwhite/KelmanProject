@@ -22,6 +22,7 @@
 #load needed libraries
 library(tidyverse) # dplyr is in this package, no need to load separately
 library(readxl) # for reading in excel workbooks
+library(vegan)
 
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
@@ -231,7 +232,12 @@ meancov_fig
 
 # ** EK: you could add a plot here for mean RELATIVE cover (with error bars) over time
 
-#meanrel_fig <- ggplot(...) + ...
+meanrel_fig <- ggplot(temporal_meancover, aes(avg_relcover, transect_ID)) +
+  geom_vline(aes(xintercept=mean(avg_relcover)), lty = 2) +
+  geom_errorbarh(aes(xmax = avg_relcover + std_error, xmin = avg_relcover - std_error, col = trait_sp)) +
+  geom_point(aes(fill(trait_sp), pch=21, size=2, alpha=.7))
+
+ 
 
 
 #meanrel_fig
@@ -278,4 +284,29 @@ ggsave("./exploratory_analysis/figures/BOS_trait_indsp_cov.pdf", spcov_fig, scal
 
 write.csv(grpd_cover,paste0(gdrive, "/KelmanProject/Data/groupedcover.csv") )
 
+#Formatting community data for community weighted means
+#1 subset data by area, transect, and cover type
+cover7_1<- subset(vegcoverdat, Area=="7" & Transect=="1" & DataType=="COVER" & Frst_hit=="Yes")
 
+#remove uneccesary columns in cover7_1 DF
+cover7_1 <- select(cover7_1, Year, OSMP_Code, Cov_freq_val)
+cover7_1 <- cover7_1 [ , 3:5]
+
+#reformatting 7_1cover data by spreading species into individual columns
+cover7_1spread <- cover7_1 %>%
+  spread(key = OSMP_Code, value = Cov_freq_val)
+
+#replace NAs with 0
+cover7_1spread [is.na(cover7_1spread)] <- 0
+
+#convert to relative abundances
+cover7_1spread <- column_to_rownames(cover7_1spread, var = "Year")
+
+Relcov7_1 <- decostand(cover7_1spread, 'total')
+
+#check that relative abundances add to 1
+apply(Relcov7_1, 1, sum)
+sort(apply(Relcov7_1, 2, sum))
+
+#convert to matrix 
+Relcov7_1 <- as.matrix(Relcov7_1)
