@@ -55,18 +55,23 @@ for(i in which(is.na(osmp_changes$study.SciName))){
   osmp_changes$study.SciName[i] <- temp_val
 }
 
-# correct missing spp names, remove spp descriptive data (since will have for trait dataset spp)
+# clean up and standardize OSMP Codes & OSMPSciName
+# start by grabbing unique {OSMP_Code, OSMPSciName, Esco_spcode, Esco_specname} combos
 BOS_spp <- unique(veg_dat[c("OSMP_Code", "OSMPSciName", "Esco_spcode", "Esco_specname")]) %>% arrange(OSMP_Code, OSMPSciName)
-# create vector of row numbers where ESCO code is duplicated but OSMP Code/SciName is not (mismatch in OSMP)
+# create vector of OSMP Codes where ESCO code is duplicated but OSMP Code/SciName is not (mismatch in OSMP)
 dup_esco <- BOS_spp$Esco_spcode[duplicated(BOS_spp$Esco_spcode) & !is.na(BOS_spp$Esco_spcode)]
 mismatch <- unique(BOS_spp$OSMP_Code) %>% subset(duplicated(tolower(.)))
+# create vector of OSMP codes for general genera (not species specific)
 genus_unk <- unique(BOS_spp$OSMP_Code[grep(" sp", BOS_spp$OSMP_Code)])
 genus_unk <- genus_unk[c(grep("1", genus_unk), which(duplicated(gsub(" 1", "", genus_unk)))-1)] # grab codes that have "1" or are duplicated when remove the 1
+# create vector of OSMP codes where OSMPSciName is missing
+NASciName <- unique(BOS_spp$OSMP_Code[is.na(BOS_spp$OSMPSciName)])
 
 # subset sp codes that are problematic
 problem_spp <- BOS_spp[BOS_spp$Esco_spcode %in% dup_esco |
                          BOS_spp$OSMP_Code %in% c(mismatch, tolower(mismatch)) |
-                         BOS_spp$OSMP_Code %in% genus_unk,] %>% distinct() %>% arrange(., Esco_spcode) %>%
+                         BOS_spp$OSMP_Code %in% genus_unk |
+                         BOS_spp$OSMP_Code %in% NASciName,] %>% distinct() %>% arrange(., Esco_spcode) %>%
   subset(!grepl("unk As", OSMP_Code)) # take out unk Asteracea 1 bc OSMP_Code and OSMPSciName is consistent (even tho differs on Esco Code)
 
 
@@ -102,6 +107,8 @@ for(i in problem_spp$OSMP_Code.corrected[grep(" sp$", problem_spp$OSMP_Code.corr
 problem_spp$OSMP_Code.corrected[problem_spp$OSMP_Code == "meloft"] <- "meloff"
 problem_spp$OSMP_Code.corrected[problem_spp$OSMP_Code == "junarc"] <- "junarca"
 problem_spp$OSMPSciName.corrected[problem_spp$OSMP_Code == "carnutm"] <- "Calochortus nuttallii"
+problem_spp$OSMPSciName.corrected[problem_spp$OSMP_Code == "phyhedc"] <- "Physalis hederifolia var. comata"
+
 # resort by clean vars
 problem_spp <- arrange(problem_spp, OSMP_Code.corrected, OSMPSciName.corrected)
 
@@ -133,41 +140,43 @@ cover_dat <- subset(veg_dat, DataType == "COVER") %>% #cover data only
 
 # look for duplicate codes one more time
 clean_names <- unique(cover_dat[c("OSMP_Code.clean", "OSMPSciName.clean")]) %>% arrange(OSMP_Code.clean)
-clean_problems <- cover_dat[cover_dat$OSMP_Code.clean %in% clean_names$OSMP_Code.clean[duplicated(clean_names$OSMP_Code.clean)] |
-                              is.na(cover_dat$OSMPSciName.clean),] 
-# spot corrections
-clean_problems <- unique(clean_problems[c("OSMP_Code.clean", "OSMPSciName.clean")])
-for(i in clean_problems$OSMP_Code.clean[grep(" sp$", clean_problems$OSMP_Code.clean)]){
-  clean_problems$OSMPSciName.clean[clean_problems$OSMP_Code.clean == i] <- paste0(i,"p.")
-}
-clean_problems <- clean_problems[!(duplicated(clean_problems$OSMP_Code.clean) & is.na(clean_problems$OSMPSciName.clean)),] #removes extra pancap row
-clean_problems <- clean_problems[!duplicated(clean_problems$OSMP_Code.clean),] #removes fully duplicated rows
-# manual edit
-clean_problems$OSMPSciName.clean[clean_problems$OSMP_Code.clean == "phyhedc"] <- "Physalis hederifolia var. comata"
-
-# clean up cover_dat
-for(i in clean_problems$OSMP_Code.clean){
-  edit_cells <- which(cover_dat$OSMP_Code.clean == i)
-  cover_dat$OSMPSciName.clean[edit_cells] <- clean_problems$OSMPSciName.clean[clean_problems$OSMP_Code.clean == i]
-}
-
-# final check 
-clean_names <- unique(cover_dat[c("OSMP_Code.clean", "OSMPSciName.clean")]) %>% arrange(OSMP_Code.clean)
 clean_names[duplicated(clean_names$OSMP_Code.clean),] # nothing duplicated anymore, codes and scinames cleaned!
+# clean_problems <- cover_dat[cover_dat$OSMP_Code.clean %in% clean_names$OSMP_Code.clean[duplicated(clean_names$OSMP_Code.clean)] |
+#                               is.na(cover_dat$OSMPSciName.clean),] # no problems!
+
 
 # finish subsetting cover dataset
 cover_dat <- cover_dat %>%  
   # create variable in cover_data that is just the genus and species (no subspecies or variant names)
   mutate(shortSciName = trimws(gsub(" ssp*.+| var*.+", "", OSMPSciName.clean))) %>% 
-  dplyr::select(Project, DataType, Year, Area, transect_ID, shortSciName, OSMP_Code, OSMPSciName, OSMP_Code.clean, OSMPSciName.clean, Cov_freq_val, Frst_hit, Nativity:PrioityWeed)
+  dplyr::select(Project, DataType, Year, Area, transect_ID, shortSciName, OSMP_Code, OSMPSciName, OSMP_Code.clean, OSMPSciName.clean, Cov_freq_val, Frst_hit, Nativity:PSNPathway)
 
+# TGSNA decriptor info cleanup
 # extract species descriptive data (will merge back in later)
-tgsna_descrip <- dplyr::select(cover_dat, shortSciName, OSMP_Code.clean, OSMPSciName.clean, Nativity:PrioityWeed) %>%
-  rename(PriorityWeed = PrioityWeed) %>% distinct()
+tgsna_descrip <- dplyr::select(cover_dat, shortSciName, OSMP_Code.clean, OSMPSciName.clean, Nativity:PSNPathway) %>% # A. Leezburg says can drop Priority Weed bc needs internal review/cleaning by OSMP first, is irrelevant data
+   distinct()
 
 descrip_dups <- tgsna_descrip$OSMP_Code.clean[duplicated(tgsna_descrip$OSMP_Code.clean)] %>% sort()
-descrip_problems <- tgsna_descrip[tgsna_descrip$OSMP_Code.clean %in% descrip_dups,] %>% arrange(OSMP_Code.clean, OSMPSciName.clean, Nativity)
+descrip_problems <- tgsna_descrip[tgsna_descrip$OSMP_Code.clean %in% descrip_dups,] %>% 
+  left_join(unique(dplyr::select(cover_dat, shortSciName:OSMPSciName.clean, Nativity:PSNPathway))) %>%
+  dplyr::select(OSMP_Code, OSMPSciName, shortSciName:PSNPathway) %>%
+  arrange(OSMP_Code.clean, OSMPSciName.clean, Nativity) %>%
+  subset(!(duplicated(OSMP_Code.clean) & is.na(Nativity))) %>% # remove rows where code duplicated and descriptive info is NA
+  #subset(!(grepl("spp.",OSMPSciName.clean) & OSMPSciName != OSMPSciName.clean)) # if is a general spp, select the matching row where OSMP Code is also general spp 
+  subset(!(OSMPSciName != OSMPSciName.clean)) # defer to descriptive record where original OSMPSciName matches the cleaned name (e.g. anything changed to genus spp will match the original genus spp record, any sp that was corrected due to questionable ID matches the descriptive record for species it was switched to)
 
+# manual edits
+descrip_problems <- with(descrip_problems, descrip_problems[!(grepl("Cheno.* spp", OSMPSciName.clean) & Nativity == "Native"),])
+
+# pair unproblematic tgnsa_descrip with cleaned up descrip_problems
+tgsna_descrip <- subset(tgsna_descrip, !OSMP_Code.clean %in% descrip_problems$OSMP_Code.clean) %>%
+  rbind(dplyr::select(descrip_problems, -c(OSMP_Code, OSMPSciName))) %>%
+  arrange(OSMP_Code.clean, OSMPSciName.clean)
+
+# manual edits
+# Agropyron sp. (Esco coded as "AGROPYRON X REPENS HYBRID") has all NAs for descriptive info
+tgsna_descrip[grepl("Agrop.* sp", tgsna_descrip$OSMP_Code.clean ), 
+              c("Nativity", "Lifeform", "LifeHistory", "CValue", "OSMPRareSensitive","PSNPathway")] <- c("Unknown", "Graminoid", "Perennial", NA, FALSE, "C3")
 
 # finish cleaning BOS dataset after make spp lookup table
 
