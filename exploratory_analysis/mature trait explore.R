@@ -1,29 +1,43 @@
-#Analysis of Mature Plant Traits
+#Exploratory Analysis of Mature Plant Traits Dataset
 #Authors EK, ctw, jl
 #date started 2/3/19
 
 #script purpose to explore the different traits and range of values in order to connect traits back to overall species abundance
 #steps 
 
+# setup environment
+rm(list=ls()) # start with clean enviro
+options(stringsAsFactors = FALSE) # character strings never factors by default
+
 #load libraries
-library(tidyverse)
-library(readxl)
-install.packages("corrplot")
-library(corrplot)
-install.packages(FD)
+libs <- c("tidyverse", "corrplot", "FD") # vector of libraries needed
+for(l in libs){
+  if(!require(l, character.only = T)){ # this checks whether package is installed or not; if not, install package
+    install.packages(l, dep = T)
+  }
+  library(l,character.only = T) # load library
+}
+
+# ** above as an alernative to this chunk of code
+# library(tidyverse)
+# #install.packages("corrplot")
+# library(corrplot)
+# #install.packages(FD)
+# library(FD)
 
 #set relative pathways to google drive, uncomment your path when working on script 
 gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-#gdrive <- "ctw
+#gdrive <- "../../Google\ Drive" #ctw path
 #gdrive <- jl
 
 #set pathway to mature trait dataset and read in 
 maturetraits  <- read.csv(paste0(gdrive, "/KelmanProject/Data/traits_mature_w_seedmass.csv"))
-#read in mature trait dataset and update by removing uneccessary first column 
-maturetraits <- dat[ ,2:35]
-
 glimpse(maturetraits)
 summary(maturetraits)
+
+#read in mature trait dataset and update by removing uneccessary first column 
+#maturetraits <- dat[ ,2:35] 
+
 
 traitsubset <- maturetraits[ ,c(10,12:14,17,18,36)]
 pairs(traitsubset)

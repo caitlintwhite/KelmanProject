@@ -2,13 +2,13 @@
 # feb 2019
 # caitlin.t.white@colorado.edu
 
-# script purpose:
-# prepare bos xtg transect cover for integration with functional trait data and futher analysis in e. kelman's honors thesis
-# specific steps:
-# 1) read in raw bos xtg dataset, subset cover data only (remove frequency data)
-# 2) preserve only columns needed for community weighted means analysis
-# 3) prepare species code lookup table that matches OSMP spp code with trait dataset spp code
-# 4) write out clean up, subsettted cover data and species code lookup table
+# script purpose: prepare bos xtg transect cover for integration with functional trait data and futher analysis in e. kelman's honors thesis
+# script steps:
+# 1) read in needed datasets: raw bos xtg dataset, OSMP code change dataset (CTW created, per A. Lezburg), mature traits dataset, trait species list excel sheet
+# 2) subset cover data only (remove frequency data)
+# 3) QA and clean spp codes, spp names, and descriptive data, in cover data using logical QA checks (e.g. duplicated codes but mismatched descriptive values) + OSMP code changes
+# 4) prepare species code lookup table that matches QA's OSMP spp code with trait dataset spp code
+# 4) write out cleaned up, subsettted cover data and species code lookup table
 
 
 
@@ -31,9 +31,9 @@ datapath <- paste0(google_drive, "/KelmanProject/Data/")
 NAvals <- c(" ", "", NA, "NA")
 
 # read in raw datasets
-veg_dat <- read.csv(paste0(datapath, "tgsna_monitoring_19912016.csv"),
+veg_dat <- read.csv(paste0(datapath, "raw/tgsna_monitoring_19912016.csv"),
                     stringsAsFactors = FALSE, na.strings = NAvals)
-osmp_changes <- read.csv(paste0(datapath, "OSMPcodechanges.csv"),
+osmp_changes <- read.csv(paste0(datapath, "raw/OSMPcodechanges.csv"),
                          stringsAsFactors = FALSE, na.strings = NAvals)
 trait_dat <- read.csv(paste0(datapath,"traits_mature_w_seedmass.csv"),
                       stringsAsFactors = FALSE, na.strings = NAvals)
@@ -144,14 +144,23 @@ clean_names[duplicated(clean_names$OSMP_Code.clean),] # nothing duplicated anymo
 # clean_problems <- cover_dat[cover_dat$OSMP_Code.clean %in% clean_names$OSMP_Code.clean[duplicated(clean_names$OSMP_Code.clean)] |
 #                               is.na(cover_dat$OSMPSciName.clean),] # no problems!
 
+# compare original OSMP names vs. Leezburg-corrected names
+length(unique(cover_dat$OSMP_Code)) #419
+length(unique(cover_dat$OSMP_Code.clean)) #397 (good, should be less)
+# does number of unique OSCPSciName.clean? match unique (OSMP_Code.clean?)
+length(unique(cover_dat$OSMP_Code.clean)) == length(unique(cover_dat$OSMPSciName.clean)) # True!
 
-# finish subsetting cover dataset
+
+# finish subsetting cover dataset .. for now
 cover_dat <- cover_dat %>%  
   # create variable in cover_data that is just the genus and species (no subspecies or variant names)
   mutate(shortSciName = trimws(gsub(" ssp*.+| var*.+", "", OSMPSciName.clean))) %>% 
   dplyr::select(Project, DataType, Year, Area, transect_ID, shortSciName, OSMP_Code, OSMPSciName, OSMP_Code.clean, OSMPSciName.clean, Cov_freq_val, Frst_hit, Nativity:PSNPathway)
 
-# TGSNA decriptor info cleanup
+
+
+# --- TGSNA DESCRIPTIVE CLEAN UP -----
+# clean up and standardize species descriptive info
 # extract species descriptive data (will merge back in later)
 tgsna_descrip <- dplyr::select(cover_dat, shortSciName, OSMP_Code.clean, OSMPSciName.clean, Nativity:PSNPathway) %>% # A. Leezburg says can drop Priority Weed bc needs internal review/cleaning by OSMP first, is irrelevant data
    distinct()
@@ -177,15 +186,58 @@ tgsna_descrip <- subset(tgsna_descrip, !OSMP_Code.clean %in% descrip_problems$OS
 # Agropyron sp. (Esco coded as "AGROPYRON X REPENS HYBRID") has all NAs for descriptive info
 tgsna_descrip[grepl("Agrop.* sp", tgsna_descrip$OSMP_Code.clean ), 
               c("Nativity", "Lifeform", "LifeHistory", "CValue", "OSMPRareSensitive","PSNPathway")] <- c("Unknown", "Graminoid", "Perennial", NA, FALSE, "C3")
+# capitalize "unknown" to match styling of Nativity values
+tgsna_descrip$Nativity <- gsub("unk", "Unk", tgsna_descrip$Nativity)
 
+# which species still have missing descriptive info?
+missing_descrip <- mapply(is.na, dplyr::select(tgsna_descrip,Nativity:LifeHistory, PSNPathway))
+missing_descrip <- apply(missing_descrip, 1, function(x) sum(x)>0) #if any col has TRUE (is.na), sum of row will be >0
+missing_recs <- tgsna_descrip[missing_descrip,] 
+missing_recs <- subset(missing_recs,!Lifeform %in% "Ground cover")
+
+# manual edits..
+forbs <- c("Anten|Clayt|Cymo|Gaill|Lyco|Oeno")
+perenn <- c("Anten|Cymo|Lyco")
+native <- c("Anten|Gaill|Lyco|Cymo|Oen") #there is a non-native Lycopus europaeus USDA plants, but only documents in eastern US + BC (guessing needs more temperate climate)
+missing_recs$Lifeform[grepl(forbs, missing_recs$shortSciName)] <- "Forb"
+missing_recs$Lifeform[grepl("Erag", missing_recs$shortSciName)] <- "Graminoid"
+missing_recs$LifeHistory[grepl("Erag", missing_recs$shortSciName)] <- "Unknown"
+missing_recs$Nativity[grepl("Erag", missing_recs$shortSciName)] <- "Unknown"
+missing_recs$OSMPRareSensitive[grepl("Anten", missing_recs$shortSciName)] <- FALSE
+missing_recs[missing_recs$OSMP_Code.clean == "phyhedc", 
+             c("Nativity", "Lifeform", "LifeHistory")] <- c("Native", "Forb/Subshrub", "Perennial")
+missing_recs$LifeHistory[grepl(perenn, missing_recs$shortSciName)] <- "Perennial"
+missing_recs$LifeHistory[is.na(missing_recs$LifeHistory) & missing_recs$Lifeform == "Forb"] <- "Annual/Perennial"
+missing_recs$LifeHistory[is.na(missing_recs$LifeHistory) & grepl("Forb|Gram", missing_recs$Lifeform)==FALSE] <- "Unknown"
+missing_recs$Nativity[is.na(missing_recs$Nativity) & grepl(native, missing_recs$shortSciName)] <- "Native"
+missing_recs$PSNPathway[is.na(missing_recs$PSNPathway)] <- "Unknown"
 # finish cleaning BOS dataset after make spp lookup table
 
+# pair complete tgsna_descrip with cleaned up missing_recs
+tgsna_descrip <- subset(tgsna_descrip, !OSMP_Code.clean %in% missing_recs$OSMP_Code.clean) %>%
+  rbind(missing_recs) %>%
+  arrange(OSMP_Code.clean, OSMPSciName.clean)
+
+# be sure codes in cover dat and descriptive dat match up
+summary(sort(unique(cover_dat$OSMP_Code.clean)) == sort(unique(tgsna_descrip$OSMP_Code.clean))) #yes!
+
+# PSNPathway check (only things that will have data are likely graminoids)
+with(tgsna_descrip, lapply(split(PSNPathway, Lifeform), unique)) # as expected, only grams.. Chamaesyce spp. is only Forb with data (C4.. looks reasonable in Google search)
+#QA grams
+grams <- subset(tgsna_descrip, grepl("Gram", Lifeform))
+grams$genus <- gsub(" .*", "", grams$shortSciName)
+problem_grams <- unique(grams[c("genus", "PSNPathway")]) %>% subset(genus %in% duplicated(genus) | PSNPathway == "Unknown")
+# > NOTE: in quick google search, all wetland spp + Poa can be cool or warm season, so will leave as unknown.
+# manual edit: Recode Agrostis PSNPathway to match other Agrostic spp in dataset (that is the only gram to fix)
+tgsna_descrip$PSNPathway[grepl("Agrost",tgsna_descrip$shortSciName) & tgsna_descrip$PSNPathway == "Unknown"] <- unique(tgsna_descrip$PSNPathway[grepl("Agrost",tgsna_descrip$shortSciName) & tgsna_descrip$PSNPathway != "Unknown"]) 
+
+#tgsna descrip clean!
 
 
 # -- SUSBET AND CLEAN UP SPP DESCRIP -----
 spp_descrip <- spp_descrip %>%
   # correct Species and Genus in spp descrip (are reversed)
-  rename(JL_code = 'Species code', # rename to remove space, indicate it's code used in larson dataset and distinguish from 'Species' field name
+  rename(JL_Code = 'Species code', # rename to remove space, indicate it's code used in larson dataset and distinguish from 'Species' field name
          Species = Genus,
          Genus = Species) %>%
   # correct spelling of various species.. 
@@ -195,37 +247,84 @@ spp_descrip <- spp_descrip %>%
          Lifeform = paste0(toupper(substr(Lifeform, 1,1)),substr(Lifeform, 2, nchar(Lifeform))),
          Origin = paste0(toupper(substr(Origin, 1,1)),substr(Origin, 2, nchar(Origin)))) %>% # so casing consistent with other lifeform values
   # subset trait spp descriptive dataset
-  dplyr::select(JL_code:Origin) %>%
+  dplyr::select(JL_Code:Origin) %>%
   # create full latin name
   unite(JLSciName, Genus, Species, sep = " ", remove = FALSE)
+
+# QA check: is number of distinct codes in mature trait data same as in spp_descrip?
+length(unique(trait_dat$species)) == length(unique(spp_descrip$JL_Code)) #falso
+# are at least spp codes in mature trait data IN the trait spp list? (if yes, proceed)
+if(sum(unique(trait_dat$species) %in% unique(spp_descrip$JL_Code)) != length(unique(trait_dat$species))){
+  print("Error! spp mismatch between trait data and trait spp list. Go investigate!")
+} else{ print("Bueno! Mature trait spp & trait spp list match! Proceed to lookup table.")}
+
+#investigate..
+# which mature trait dataset codes not in trait spp list?
+tr_dat_missing <- unique(trait_dat$species[!unique(trait_dat$species) %in% unique(spp_descrip$JL_Code)]) 
+tr_dat_missing #"brotec" "ermfen" "lesmon"
+
+# which trait spp list codes not in mature trait dataset?
+tr_list_missing <- unique(spp_descrip$JL_Code[!unique(spp_descrip$JL_Code) %in% unique(trait_dat$species)]) 
+tr_list_missing #"ambpsi" "anitec" "carpen" "erefen" "muhmon"
+
+# ctw looked at veg dat, assume ermfen is type and should be erefen (esp since in trait spp list and is missing from trait dat)
+tr_dat_missing <- tr_dat_missing[!tr_dat_missing == "ermfen"]
+# brotec = anitec, lesmon is in boulder open space veg data (but not in spp list)
+
 
 
 # -- CREATE SPP LOOKUP TABLE -----
 # join cover data OSMP_code and OSCPSciName columns
-spp_lookup <- left_join(spp_descrip, unique(cover_dat[, c("shortSciName", "OSMP_Code.clean", "OSMPSciName.clean")]), by = c("JLSciName" = "shortSciName"))
+spp_lookup <- left_join(spp_descrip, unique(cover_dat[, c("shortSciName", "OSMP_Code.clean", "OSMPSciName.clean")]), by = c("JLSciName" = "shortSciName")) %>%
+  dplyr::select(JL_Code:Species, OSMP_Code.clean, OSMPSciName.clean, Lifeform:Origin) %>% #rearrange columns
+  rename(LifeHistory = 'Life history',
+         Nativity = Origin) #match OSMP column name
 
 # manual corrections
 ## elytrigia repens (OSMP) == elymus repens (trait data)
-spp_lookup[which(spp_lookup$JL_code == "elyrep"),c("OSMP_Code.clean", "OSMPSciName.clean")] <- unique(cover_dat[which(cover_dat$OSMP_Code.clean=="elyrep"), c("OSMP_Code.clean", "OSMPSciName.clean")])
+spp_lookup[which(spp_lookup$JL_Code == "elyrep"),c("OSMP_Code.clean", "OSMPSciName.clean")] <- unique(cover_dat[which(cover_dat$OSMP_Code.clean=="elyrep"), c("OSMP_Code.clean", "OSMPSciName.clean")])
 ## helianthus rigidus (OSMP) == helianthus rigida (trait data)
-spp_lookup[which(spp_lookup$JL_code == "helrig"),c("OSMP_Code.clean", "OSMPSciName.clean")] <- unique(cover_dat[which(grepl("Helianthus rig",cover_dat$OSMPSciName.clean)==TRUE), c("OSMP_Code.clean", "OSMPSciName.clean")])
+spp_lookup[which(spp_lookup$JL_Code == "helrig"),c("OSMP_Code.clean", "OSMPSciName.clean")] <- unique(cover_dat[which(grepl("Helianthus rig",cover_dat$OSMPSciName.clean)==TRUE), c("OSMP_Code.clean", "OSMPSciName.clean")])
 ## alyaly-alydes-alypar (OSMP) == alypar (trait data)
-spp_lookup[which(spp_lookup$JL_code == "alypar"),c("OSMP_Code.clean", "OSMPSciName.clean")] <- unique(cover_dat[which(grepl("alypar",cover_dat$OSMP_Code.clean)==TRUE), c("OSMP_Code.clean", "OSMPSciName.clean")])
-
-# arrange columns for final output
-spp_lookup <- dplyr::select(spp_lookup, JL_code:Species, OSMP_Code.clean, OSMPSciName.clean, Lifeform:Origin) %>%
-  rename(LifeHistory = 'Life history')
+spp_lookup[which(spp_lookup$JL_Code == "alypar"),c("OSMP_Code.clean", "OSMPSciName.clean")] <- unique(cover_dat[which(grepl("alypar",cover_dat$OSMP_Code.clean)==TRUE), c("OSMP_Code.clean", "OSMPSciName.clean")])
+# Virgulus sp (OSMP) = virfal (trait data)
+spp_lookup[which(spp_lookup$JL_Code == "virfal"),c("OSMP_Code.clean", "OSMPSciName.clean")] <- unique(cover_dat[which(grepl("Virgulus",cover_dat$OSMP_Code.clean)==TRUE), c("OSMP_Code.clean", "OSMPSciName.clean")])
 
 
+# manually enter trait codes in lookup missing from list in the trait spp list
+spp_lookup[(nrow(spp_lookup)+1):(nrow(spp_lookup)+length(tr_dat_missing)), ncol(spp_lookup)] <- NA #create rows
+spp_lookup$JL_Code[(nrow(spp_lookup)-length(tr_dat_missing)+1):(nrow(spp_lookup))] <- c(tr_dat_missing)
+# fix brotec
+spp_lookup[spp_lookup$JL_Code == "brotec", c("JLSciName", "Genus", "Species", "OSMP_Code.clean")] <- c("Bromus tectorum", "Bromus", "tectorum", "anitec")
+spp_lookup[spp_lookup$JL_Code == "brotec", c("OSMP_Code.clean", "OSMPSciName.clean", "Lifeform", "LifeHistory", "Nativity")] <- tgsna_descrip[tgsna_descrip$OSMP_Code.clean == "anitec", c("OSMP_Code.clean", "OSMPSciName.clean", "Lifeform", "LifeHistory", "Nativity")]
+# fix lesmon
+spp_lookup[spp_lookup$JL_Code == "lesmon", c("OSMP_Code.clean")] <- "lesmon"
+spp_lookup[spp_lookup$JL_Code == "lesmon", c("OSMP_Code.clean", "OSMPSciName.clean", "Lifeform", "LifeHistory", "Nativity")] <- tgsna_descrip[tgsna_descrip$OSMP_Code.clean == "lesmon", c("OSMP_Code.clean", "OSMPSciName.clean", "Lifeform", "LifeHistory", "Nativity")]
+spp_lookup$JLSciName[spp_lookup$JL_Code == "lesmon"] <- spp_lookup$OSMPSciName.clean[spp_lookup$JL_Code == "lesmon"]
+spp_lookup[spp_lookup$JL_Code == "lesmon", c("Genus", "Species")] <- strsplit(spp_lookup$OSMPSciName.clean[spp_lookup$JL_Code == "lesmon"], " ") %>% unlist()
 
-# -- CLEAN UP AND SUBSET BOS DATASET: PART 2 -----
-# compare original OSMP names vs. Leezburg-corrected names
-length(unique(cover_dat$OSMP_Code)) #419
-length(unique(cover_dat$OSMP_Code.clean)) #397 (good, should be less)
-# does number of unique OSCPSciName.clean? match unique (OSMP_Code.clean?)
-length(unique(cover_dat$OSMP_Code.clean)) == length(unique(cover_dat$OSMPSciName.clean)) # True!
+# rename JL Lifeform, LifeHistory, Nativity to not confused with OSMP Lifeform 
+# > all the same except JL uses "Shrub/Woody" in Lifeform so OSMP cols will not join as should if keep colnames as is
+spp_lookup <- rename(spp_lookup, 
+                     JL_Lifeform = Lifeform,
+                     JL_LifeHistory = LifeHistory,
+                     JL_Nativity = Nativity)
 
-sort(unique(cover_dat$OSMP_Code.clean))
+# check for any missing values
+summary(is.na(spp_lookup)) #expect 1 bc tall oatgrass not in BOS dataset
 
+
+
+# -- CLEAN UP + PREP BOS DATASET: PART 2 -----
 # only keep clean codes and scinames, take out descriptive cols (can add back in later)
-cover_out <- dplyr::select(cover_dat, Project:shortSciName, OSMP_Code.clean:Frst_hit) 
+cover_out <- dplyr::select(cover_dat, Project:shortSciName, OSMP_Code.clean:Frst_hit) %>%
+  #join descriptive info
+  left_join(tgsna_descrip)
+
+
+
+# -- FINISHING -----
+# write out cleaned cover dat
+write_csv(cover_out, paste0(datapath, "tgsna_monitoring_19962016_clean.csv"))
+# write out lookup table
+write.csv(spp_lookup, paste0(datapath, "tgsna_trait_spp_lookup.csv"))
