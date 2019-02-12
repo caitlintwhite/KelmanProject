@@ -184,5 +184,20 @@ rownames(bos_cwm) <- seq(1:nrow(bos_cwm)) #clean up rownames
 ##########################################
 
 # can visualize relationship between bos CWM and environment.. CWM to total annual cover.. whatever you choose..
+CWM_climate_merged <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5")],  by=c("Year"="year"))%>%
+  gather( key = "trait_name", value, RMR:SLA, precip_5, spei_5)
+ 
 
+#plotting precipitation over time
+ggplot(clim_dat, mapping = aes(year, precip_5)) +
+  geom_col()
 
+#plot CWM for SLA and precip over time
+ggplot(subset( CWM_climate_merged, trait_name%in% c("SLA", "precip_5", "spei_5", "RMR")), mapping = aes(Year, value))+
+  geom_line()+
+  geom_point()+
+  facet_grid(trait_name~., scales = "free_y")+
+  theme_bw()
+
+#creating correlation matrix for CWM traits
+traits_correlation <- cor(bos_cwm[traits])

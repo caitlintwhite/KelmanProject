@@ -43,10 +43,11 @@ bos_dat_clean <- paste0(gdrive, "/KelmanProject/Data/tgsna_monitoring_19962016_c
 
 
 #read in datasets
-bos_dat <- read_csv(bos_datpath)
+bos_dat <- read.csv(bos_datpath)
 trait_dat <- read_xlsx(trait_datpath)
-bos_dat_clean <-read_csv(bos_dat_clean)
-
+bos_dat_clean <-read.csv(bos_dat_clean)
+spp_lookup <- paste0(gdrive, "/KelmanProject/Data/tgsna_trait_spp_lookup.csv")
+spp_lookup <-read.csv(spp_lookup)
 
 # --- PREP DATASETS FOR ANALYSIS -----
 #look at structure of data frames
