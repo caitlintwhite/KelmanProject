@@ -29,8 +29,8 @@ library(readxl) # for reading in excel workbooks
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-gdrive <- "../../Google\ Drive" #ctw path
+gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+#gdrive <- "../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 # set path to datasets
@@ -39,10 +39,13 @@ gdrive <- "../../Google\ Drive" #ctw path
 bos_datpath <-paste0(gdrive, "/KelmanProject/Data/raw/tgsna_monitoring_19912016.csv")
 # there are two trait datasets in Kelman Project? reading one from data folder with more recent timestamp
 trait_datpath <-paste0(gdrive, "/KelmanProject/Data/Trait_species_list_veg_dormancy.xlsx")
+bos_dat_clean <- paste0(gdrive, "/KelmanProject/Data/tgsna_monitoring_19962016_clean.csv")
+
 
 #read in datasets
 bos_dat <- read_csv(bos_datpath)
 trait_dat <- read_xlsx(trait_datpath)
+bos_dat_clean <-read_csv(bos_dat_clean)
 
 
 # --- PREP DATASETS FOR ANALYSIS -----
