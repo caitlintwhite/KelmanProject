@@ -108,9 +108,9 @@ cover_dat$OSMPSciName <-  ifelse(cover_dat$OSMP_Code == "junarc",
 # unique(vegcoverdat$OSMP_Code)
 # 
 # #create a new column to quantify relative cover now that we've removed rock litter etc.
-# vegcoverdat <- vegcoverdat %>%
-#   group_by(Year, Area, Transect) %>%
-#   mutate(RelCov = Cov_freq_val/sum(Cov_freq_val))
+#vegcoverdat <- vegcoverdat %>%
+#  group_by(Year, Area, Transect) %>%
+# mutate(RelCov = Cov_freq_val/sum(Cov_freq_val))
 
 
 # summarize cover dataset by what's in trait dataset vs what's not in trait dataset

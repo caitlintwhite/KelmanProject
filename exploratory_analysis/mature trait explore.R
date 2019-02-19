@@ -41,7 +41,7 @@ summary(maturetraits)
 
 traitsubset <- maturetraits[ ,c(10,12:14,17,18,36)]
 pairs(traitsubset)
-#create a new column to quantify total increase in height. wanted to check that i correctly grouped the variables?
+#create a new column to quantify total increase in height
 maturetraits <- maturetraits %>%
   group_by(species) %>%
   mutate(totalgrowth_cm = final_height_cm - start_height_cm)

@@ -33,8 +33,8 @@ for(l in libs){
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-gdrive <- "../../Google\ Drive" #ctw path
+gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+#gdrive <- "../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 #read in datasets
@@ -42,6 +42,7 @@ bos_dat <- read.csv(paste0(gdrive, "/KelmanProject/Data/tgsna_monitoring_1996201
 trait_dat <- read.csv(paste0(gdrive, "/KelmanProject/Data/traits_mature_w_seedmass.csv"))
 spp_lookup <- read.csv(paste0(gdrive, "/KelmanProject/Data/tgsna_trait_spp_lookup.csv"))
 clim_dat <- read.csv(paste0(gdrive, "/KelmanProject/Data/boulder_climate.csv"))
+
 
 # did all datasets read in as expected?
 ## bos xeric tallgrass cover data
@@ -55,7 +56,7 @@ names(trait_dat)
 str(trait_dat) 
 # what is diff between species and species.1? are they the same
 summary(trait_dat$species == trait_dat$species.1) #yes, remove species.1 to avoid confusion
-trait_dat <- trait_dat[,!names(trait_dat) %in% "species.1"]
+trait_dat<- trait_dat[,!names(trait_dat) %in% "species.1"]
 names(trait_dat)[names(trait_dat)=="species"] <- "JL_Code" #rename "species" code to "JL_code" to match spp lookup table
 
 ## bos-trait spp lookup table
@@ -74,8 +75,8 @@ summary(clim_dat)
 
 # -- DATA EXPLORE -----
 #Trait steps
-trait_species <- unique(maturetraits$`species`)
-bos_species <- unique(cover7_1$OSMP_Code)
+trait_species <- unique(trait_dat$`species`)
+bos_species <- unique(bos_dat$OSMP_Code)
 table(trait_species %in% bos_species) #of trait spp, how many overlap with bos species?
 summary(bos_species %in% trait_species) #of bos pp, how many overlap with trait species?
 
@@ -170,7 +171,8 @@ summary(sort(unique(colnames(rel_abundance))) == sort(unique(rownames(fxnl_df)))
 
 
 # -- (4) Create community weighted means -----
-bos_cwm <- functcomp(x = fxnl_df, a = abundance)
+bos_cwm <- functcomp(x = fxnl_df, a = abundance)+
+  
 # back out transect_ID and year
 bos_cwm$sitekey <- rownames(bos_cwm) #store unique site-year key in its own column
 bos_cwm$transect_ID <- gsub("[.].*$", "", bos_cwm$sitekey) #everything after period in sitekey is removed
@@ -189,8 +191,12 @@ CWM_climate_merged <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5"
  
 
 #plotting precipitation over time
-ggplot(clim_dat, mapping = aes(year, precip_5)) +
-  geom_col()
+precip_overT_fig <-ggplot(clim_dat, mapping = aes(x=year, y=precip_5)) +
+  geom_line()+
+  geom_point()
+  
+
+precip_overT_fig
 
 #plot CWM for SLA and precip over time
 ggplot(subset( CWM_climate_merged, trait_name%in% c("SLA", "precip_5", "spei_5", "RMR")), mapping = aes(Year, value))+
@@ -199,5 +205,17 @@ ggplot(subset( CWM_climate_merged, trait_name%in% c("SLA", "precip_5", "spei_5",
   facet_grid(trait_name~., scales = "free_y")+
   theme_bw()
 
+#plot panel of all traits  
+ggplot(subset( CWM_climate_merged, trait_name%in% c("SLA", "RMR", "RDMC", "SRL", "Rdiam", "LDMC")), mapping = aes(Year, value))+
+  geom_line()+
+  geom_point()+
+  facet_grid(trait_name~., scales = "free_y")+
+  theme_bw()
+
+#plot 7_1 cover over time
+
+    
+
 #creating correlation matrix for CWM traits
 traits_correlation <- cor(bos_cwm[traits])
+
