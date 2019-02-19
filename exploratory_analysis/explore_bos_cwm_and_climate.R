@@ -22,7 +22,7 @@ options(stringsAsFactors = FALSE) #character variables never factor by default
 
 
 #install/load needed libraries
-libs <- c("tidyverse", "FD", "vegan") # FD for CWM; vegan for transforming spp abundance matrix and multivar ordination
+libs <- c("tidyverse", "FD", "vegan", "graphics") # FD for CWM; vegan for transforming spp abundance matrix and multivar ordination
 for(l in libs){
   if(!require(l, character.only = T)){ # this checks whether package is installed or not; if not, install package
     install.packages(l, dep = T)
@@ -82,9 +82,6 @@ summary(bos_species %in% trait_species) #of bos pp, how many overlap with trait 
 
 # which trait species are not in bos dataset?
 bos_species[which(!bos_species %in%trait_species )]
-# what are their scientific names?
-trait_dat[!trait_dat$`Species code` %in% bos_species, c("Species", "Genus")]
-
 
 
 
@@ -102,11 +99,11 @@ trait_dat[!trait_dat$`Species code` %in% bos_species, c("Species", "Genus")]
 # ** EK: modify this part, all code below should be generic (so not creating a bunch of data frames and hand editing many lines of code)
 
 # specify transects and yrs to be used in community weighted means calculation
-transects <- c("7_1") # transect_ID value; if want all use: unique(bos_dat$transect_ID)
+transects <- c("7_1", "7_10", "7_2", "7_3", "7_4", "7_5", "7_6", "7_7", "7_9") # transect_ID value; if want all use: unique(bos_dat$transect_ID)
 yrs <- c(1991:2016) # yrs in dataset range 1991-2016
 
 # specify vector of desired traits
-traits <- colnames(trait_dat)[c(10,12:14,17,18)] # this will be only line to modify, everything below here generic
+traits <- colnames(trait_dat)[c(10,12:14,17,18,35)] # this will be only line to modify, everything below here generic
 traits # visually check if traits you expected
 
 
@@ -137,8 +134,9 @@ abundance <- subset(bos_dat, transect_ID %in% transects & Year %in% yrs) %>%
   spread(JL_Code, cover, fill = 0) %>% # spread out species cover, fill any empty cells (i.e. species not present) with "0"
   as.data.frame()
 
-# pause to create site-environmental matrix in case want to do exploratory ordination later
-site_matrix <- abundance[c("transect_ID", "Year", "sitekey")]
+# pause to create site-environmental matrix in case want to do exploratory ordination later 
+#uneccessary for now. for use in ordination 
+#site_matrix <- abundance[c("transect_ID", "Year", "sitekey")]
 
 # continue making spp abundance matrix
 rownames(abundance) <- abundance$sitekey #assign unique transect-year as rowname
@@ -171,7 +169,7 @@ summary(sort(unique(colnames(rel_abundance))) == sort(unique(rownames(fxnl_df)))
 
 
 # -- (4) Create community weighted means -----
-bos_cwm <- functcomp(x = fxnl_df, a = abundance)+
+bos_cwm <- functcomp(x = fxnl_df, a = abundance)
   
 # back out transect_ID and year
 bos_cwm$sitekey <- rownames(bos_cwm) #store unique site-year key in its own column
@@ -186,9 +184,22 @@ rownames(bos_cwm) <- seq(1:nrow(bos_cwm)) #clean up rownames
 ##########################################
 
 # can visualize relationship between bos CWM and environment.. CWM to total annual cover.. whatever you choose..
-CWM_climate_merged <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5")],  by=c("Year"="year"))%>%
-  gather( key = "trait_name", value, RMR:SLA, precip_5, spei_5)
+#wide form for creating linear regression
+CWM_climate_merged_W <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5")],  by=c("Year"="year")) 
+
+#long form for creating figures 
+CWM_climate_merged_L <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5")],  by=c("Year"="year"))%>%
+gather( key = "trait_name", value, RMR:seed_mass, precip_5, spei_5)
  
+area7_drought_SLA_fig <-ggplot(CWM_climate_merged, mapping = aes(x=spei_5, y=SLA, col=transect_ID))+
+ geom_point()+
+  geom_smooth(method = "lm")
+
+#running linear regression
+lm(formula = SLA ~ spei_5, data = CWM_climate_merged)
+  
+   
+area7_drought_SLA_fig
 
 #plotting precipitation over time
 precip_overT_fig <-ggplot(clim_dat, mapping = aes(x=year, y=precip_5)) +
@@ -204,14 +215,14 @@ drought_overT_fig <- ggplot(clim_dat, mapping = aes(x=year, y=spei_12))+
 drought_overT_fig
 
 #plot CWM for SLA and precip over time
-ggplot(subset( CWM_climate_merged, trait_name%in% c("SLA", "precip_5", "spei_5", "RMR")), mapping = aes(Year, value))+
+ggplot(subset( CWM_climate_merged_L_L, trait_name%in% c("SLA", "precip_5", "spei_5", "RMR")), mapping = aes(Year, value))+
   geom_line()+
   geom_point()+
   facet_grid(trait_name~., scales = "free_y")+
   theme_bw()
 
 #plot panel of all traits  
-ggplot(subset( CWM_climate_merged, trait_name%in% c("SLA", "RMR", "RDMC", "SRL", "Rdiam", "LDMC")), mapping = aes(Year, value))+
+ggplot(subset( CWM_climate_merged_L, trait_name%in% c("SLA", "RMR", "RDMC", "SRL", "Rdiam", "LDMC")), mapping = aes(Year, value))+
   geom_line()+
   geom_point()+
   facet_grid(trait_name~., scales = "free_y")+
