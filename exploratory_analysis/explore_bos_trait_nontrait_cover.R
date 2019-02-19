@@ -224,7 +224,7 @@ temporal_meancover <- grpd_cover %>% # start with grpd_cover since it didn't see
             nobs = length(Year), # number of annual observations in the record per transect (i.e. number of times transect sampled)
             std_dev = sd(summed_cover), #std dev of mean absolute cover
             std_error = std_dev/sqrt(nobs), #std error of mean absolute cover
-            rel_sd = sd(summed_cover), # std dev of mean relative cover
+            rel_sd = sd(rel_cover), # std dev of mean relative cover
             rel_se = rel_sd/sqrt(nobs)) # std error of mean relative cover
 
 # temporal mean by site, split by species in trait dataset/not in trait dataset  
@@ -244,15 +244,18 @@ meancov_fig
 
 # ** EK: you could add a plot here for mean RELATIVE cover (with error bars) over time
 
-meanrel_fig <- ggplot(temporal_meancover, aes(avg_relcover, transect_ID)) +
-  geom_vline(aes(xintercept=mean(avg_relcover)), lty = 2) +
-  geom_errorbarh(aes(xmax = avg_relcover + std_error, xmin = avg_relcover - std_error, col = trait_sp)) +
-  geom_point(aes(fill(trait_sp), pch=21, size=2, alpha=.7))
+meanrel_fig <- ggplot(temporal_meancover, aes(avg_relcover, transect_ID, fill = trait_sp)) +
+  geom_vline(aes(xintercept=0.5), lty = 2) +
+  geom_errorbarh(aes(xmax = avg_relcover + rel_se, xmin = avg_relcover - rel_se, col = trait_sp)) +
+  geom_point(pch = 21, size=2, alpha=.7) +
+  labs(y = "Transect", x = "Temporal mean cover (%)",
+       title = "Temporal mean relative transect vegetative cover (1991-2016), by species in and not in trait dataset, by site",
+       subtitle = "Mean of summed species relative cover, bars show ±1 standard error") +
+  scale_fill_manual(name = "In trait database?", values = c("no" = "orchid2", "yes" = "royalblue3")) +
+  scale_color_discrete(guide = "none")+
+  theme_bw()
 
- 
-
-
-#meanrel_fig
+meanrel_fig
 
 
 # what about cover of individual trait dataset species over space and time?
@@ -289,8 +292,8 @@ ggsave("./exploratory_analysis/figures/BOS_relativecover.pdf", relcov_fig,
        width = 6, height = 4, units = "in", scale = 1.5)
 ggsave("./exploratory_analysis/figures/BOS_mean_abscover.pdf", meancov_fig, 
        width = 6, height = 4, units = "in", scale = 1.5)
-#ggsave("./exploratory_analysis/figures/BOS_mean_relcover.pdf", meanrel_fig, ## **EK: if make this figure, save to github/figures folder
-#       width = 6, height = 4, units = "in", scale = 1.5)
+ggsave("./exploratory_analysis/figures/BOS_mean_relcover.pdf", meanrel_fig, ## **EK: if make this figure, save to github/figures folder
+       width = 6, height = 4, units = "in", scale = 1.5)
 ggsave("./exploratory_analysis/figures/BOS_trait_indsp_cov.pdf", spcov_fig, scale = 1.35)
 
 
