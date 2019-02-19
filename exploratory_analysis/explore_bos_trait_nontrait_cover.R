@@ -29,8 +29,8 @@ library(readxl) # for reading in excel workbooks
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-#gdrive <- "../../Google\ Drive" #ctw path
+#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+gdrive <- "../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 # set path to datasets
@@ -40,16 +40,19 @@ bos_datpath <-paste0(gdrive, "/KelmanProject/Data/raw/tgsna_monitoring_19912016.
 # there are two trait datasets in Kelman Project? reading one from data folder with more recent timestamp
 trait_datpath <-paste0(gdrive, "/KelmanProject/Data/Trait_species_list_veg_dormancy.xlsx")
 bos_dat_clean <- paste0(gdrive, "/KelmanProject/Data/tgsna_monitoring_19962016_clean.csv")
-
+spp_lookup <- paste0(gdrive, "/KelmanProject/Data/tgsna_trait_spp_lookup.csv")
 
 #read in datasets
 bos_dat <- read.csv(bos_datpath)
 trait_dat <- read_xlsx(trait_datpath)
 bos_dat_clean <-read.csv(bos_dat_clean)
-spp_lookup <- paste0(gdrive, "/KelmanProject/Data/tgsna_trait_spp_lookup.csv")
 spp_lookup <-read.csv(spp_lookup)
+spp_lookup <- spp_lookup[2:ncol(spp_lookup)] #get rid of junk csv index columns "X" 
 
-# --- PREP DATASETS FOR ANALYSIS -----
+
+
+# --- EXPLORE RAW DATASETS -----
+# ** this code is looking at the original bosmp data (not cleaned) to see how to screen data, and matching spp codes in BOSMP dataset manually with spp codes in trait dataset
 #look at structure of data frames
 glimpse(bos_dat) #method using tidyverse function
 str(bos_dat) #method using base R function
@@ -58,8 +61,6 @@ glimpse(trait_dat)
 
 # subset datasets to what's needed for analysis
 cover_dat <- subset(bos_dat, DataType == "COVER" & Lifeform!="Ground cover")
-
-
 
 #what species in trait dataset are in bos dataset (without data cleaning)
 trait_species <- unique(trait_dat$`Species code`)
@@ -113,12 +114,17 @@ cover_dat$OSMPSciName <-  ifelse(cover_dat$OSMP_Code == "junarc",
 # mutate(RelCov = Cov_freq_val/sum(Cov_freq_val))
 
 
+# -- PREPARE CLEAN BOS DATA FOR TRAIT VS NON-TRAIT COVER FIGURES ----
+# ** from here on, uses clean BOSMP dataset
+cover_dat_clean <- subset(bos_dat_clean, DataType == "COVER")
+
 # summarize cover dataset by what's in trait dataset vs what's not in trait dataset
 # each area-transect combo, per year, should have 2 rows: total cover for trait species and total cover for not-trait-species
 # start you code here and assign issue when you get stuck...
-grpd_cover <- cover_dat %>% 
+grpd_cover <- cover_dat_clean %>% 
   subset(Lifeform != "Ground cover") %>%  # <-- **remove non-veg cover in one line of code. see Lifeform variable in bos_dat ** 
-  mutate(transect_ID = paste(Area, transect_ID,sep = "_")) %>%
+  #mutate(transect_ID = paste(Area, transect_ID,sep = "_")) %>% # ctw already made transect_ID for bos_dat_clean, reads in with it 
+  mutate(trait_sp = ifelse(OSMP_Code.clean %in% spp_lookup$OSMP_Code.clean,"yes", "no")) %>% # add column to indicate whether in trait dataset or not
   group_by(Year, transect_ID, trait_sp) %>%
   summarize(summed_cover = sum(Cov_freq_val)) %>%
   ungroup() %>%
@@ -187,10 +193,10 @@ relcov_fig
 # multiple hits could be recorded if the vegetation was layered (e.g. grass over forb over another forb; shrub over grass over forb, etc.)
 # what if we only consider the first hit species?
 # we'll need to start with the cover dataset again to subset only first hit cover (Frst_hit == "Yes")
-firstcov_fig <- cover_dat %>%
+firstcov_fig <- cover_dat_clean %>%
   subset(Frst_hit == "Yes" & Lifeform != "Ground cover") %>%
   # then aggregate (summarize) as we did about for grouped_cover and pipe to ggpplot
-  mutate(transect_ID = paste(Area, Transect,sep = "_")) %>%
+  mutate(trait_sp = ifelse(OSMP_Code.clean %in% spp_lookup$OSMP_Code.clean,"yes", "no")) %>% # add column to indicate whether in trait dataset or not
   group_by(Year, transect_ID, trait_sp) %>%
   summarize(cover_tophit = sum(Cov_freq_val)) %>%
   # left_join(grpd_cover) %>%
@@ -251,21 +257,21 @@ meanrel_fig <- ggplot(temporal_meancover, aes(avg_relcover, transect_ID)) +
 
 # what about cover of individual trait dataset species over space and time?
 # similary, instead of creating a new dataset, we can just aggregate the cover dataset as we want and then pipe it to ggplot
-spcov_fig <- cover_dat %>% # start with this dataset, and continue pipe..
+spcov_fig <- cover_dat_clean %>% # start with this dataset, and continue pipe..
+  mutate(trait_sp = ifelse(OSMP_Code.clean %in% spp_lookup$OSMP_Code.clean,"yes", "no")) %>% # add column to indicate whether in trait dataset or not
   subset(trait_sp == "yes") %>%
-  mutate(transect_ID = paste(Area, Transect,sep = "_")) %>% # change NA in junarc to "Juncus arcticus"
-  group_by(Year, transect_ID, OSMP_Code, OSMPSciName) %>%
+  group_by(Year, transect_ID, OSMP_Code.clean, OSMPSciName.clean, shortSciName) %>%
   summarise(summed_cover = sum(Cov_freq_val)) %>%
   ungroup() %>%
-  group_by(Year, OSMP_Code, OSMPSciName) %>%
+  group_by(Year, OSMP_Code.clean, OSMPSciName.clean, shortSciName) %>%
   summarise(total_cover = sum(summed_cover),
             nobs = length(transect_ID)) %>%
-  mutate(short_sciname = gsub(" var.+| ssp.+", "", OSMPSciName)) %>% # remove varietal or sub-species names for plotting
+  #mutate(short_sciname = gsub(" var.+| ssp.+", "", OSMPSciName)) %>% # remove varietal or sub-species names for plotting
   ggplot(aes(Year, total_cover)) +
   geom_point(alpha = 0.5) +
   labs(y = "Total cover (%)",
        title = "BOS xeric tallgrass regional summed cover (all transects), by trait dataset species, by year") +
-  facet_wrap(~short_sciname, labeller = label_wrap_gen(width = 20)) +
+  facet_wrap(~shortSciName, labeller = label_wrap_gen(width = 20)) +
   theme_light() +
   theme(strip.text.x = element_text(face = "italic"))
 
