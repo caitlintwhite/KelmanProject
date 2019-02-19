@@ -118,7 +118,7 @@ cover_dat$OSMPSciName <-  ifelse(cover_dat$OSMP_Code == "junarc",
 # start you code here and assign issue when you get stuck...
 grpd_cover <- cover_dat %>% 
   subset(Lifeform != "Ground cover") %>%  # <-- **remove non-veg cover in one line of code. see Lifeform variable in bos_dat ** 
-  mutate(transect_ID = paste(Area, Transect,sep = "_")) %>%
+  mutate(transect_ID = paste(Area, transect_ID,sep = "_")) %>%
   group_by(Year, transect_ID, trait_sp) %>%
   summarize(summed_cover = sum(Cov_freq_val)) %>%
   ungroup() %>%

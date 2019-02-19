@@ -194,9 +194,14 @@ CWM_climate_merged <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5"
 precip_overT_fig <-ggplot(clim_dat, mapping = aes(x=year, y=precip_5)) +
   geom_line()+
   geom_point()
-  
 
 precip_overT_fig
+
+#plotting drought index over time
+drought_overT_fig <- ggplot(clim_dat, mapping = aes(x=year, y=spei_12))+
+  geom_col()
+
+drought_overT_fig
 
 #plot CWM for SLA and precip over time
 ggplot(subset( CWM_climate_merged, trait_name%in% c("SLA", "precip_5", "spei_5", "RMR")), mapping = aes(Year, value))+
@@ -212,7 +217,12 @@ ggplot(subset( CWM_climate_merged, trait_name%in% c("SLA", "RMR", "RDMC", "SRL",
   facet_grid(trait_name~., scales = "free_y")+
   theme_bw()
 
-#plot 7_1 cover over time
+#plot total cover over time 
+#how to include 7_1cover on y and time on x?
+ggplot(grpd_cover,mapping = aes(x=Year, y=
+
+  
+  
 
     
 
