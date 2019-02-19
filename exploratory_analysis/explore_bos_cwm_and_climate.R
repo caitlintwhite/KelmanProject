@@ -190,16 +190,23 @@ CWM_climate_merged_W <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_
 #long form for creating figures 
 CWM_climate_merged_L <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5")],  by=c("Year"="year"))%>%
 gather( key = "trait_name", value, RMR:seed_mass, precip_5, spei_5)
- 
-area7_drought_SLA_fig <-ggplot(CWM_climate_merged, mapping = aes(x=spei_5, y=SLA, col=transect_ID))+
- geom_point()+
-  geom_smooth(method = "lm")
+
+#create figure to look at LDMC and precip 
+area7_LDMC_precip_fig <- ggplot(CWM_climate_merged, mapping = aes(x=precip_5, y=LDMC))+
+ geom_point(aes(col=transect_ID))+
+  geom_smooth(method = "lm", col ="black") +
+  geom_smooth(aes(col=transect_ID), method = "lm", se = F)
+
+area7_LDMC_precip_fig
 
 #running linear regression
-lm(formula = SLA ~ spei_5, data = CWM_climate_merged)
-  
-   
-area7_drought_SLA_fig
+LDMC_precip_LM <- lm(formula = LDMC ~ precip_5, data = CWM_climate_merged)
+summary(LDMC_precip_LM)
+
+#create figure to look at mean temp over growing season and SLA
+ggplot(CWM_climate_merged, mapping = aes(x=tmean_5, y=SLA, col=))+
+  geom_line()+
+  geom_point()
 
 #plotting precipitation over time
 precip_overT_fig <-ggplot(clim_dat, mapping = aes(x=year, y=precip_5)) +
@@ -215,28 +222,27 @@ drought_overT_fig <- ggplot(clim_dat, mapping = aes(x=year, y=spei_12))+
 drought_overT_fig
 
 #plot CWM for SLA and precip over time
-ggplot(subset( CWM_climate_merged_L_L, trait_name%in% c("SLA", "precip_5", "spei_5", "RMR")), mapping = aes(Year, value))+
+ggplot(subset( CWM_climate_merged_L, trait_name%in% c("SLA", "precip_5", "spei_5", "RMR")), mapping = aes(Year, value))+
   geom_line()+
   geom_point()+
   facet_grid(trait_name~., scales = "free_y")+
   theme_bw()
 
-#plot panel of all traits  
-ggplot(subset( CWM_climate_merged_L, trait_name%in% c("SLA", "RMR", "RDMC", "SRL", "Rdiam", "LDMC")), mapping = aes(Year, value))+
+
+
+#plot panel of all traits. #how to make this look more clean?
+ggplot(subset( CWM_climate_merged_L, trait_name%in% c("SLA", "RMR", "RDMC", "SRL", "Rdiam", "LDMC", "seed_mass")), mapping = aes(Year, value))+
   geom_line()+
   geom_point()+
   facet_grid(trait_name~., scales = "free_y")+
   theme_bw()
-
-#plot total cover over time 
-#how to include 7_1cover on y and time on x?
-ggplot(grpd_cover,mapping = aes(x=Year, y=
-
-  
   
 
-    
+
+
 
 #creating correlation matrix for CWM traits
 traits_correlation <- cor(bos_cwm[traits])
 
+#save figures to github
+ggsave("./exploratory_analysis/figures/area7_LDMC_fig.pdf", area7_LDMC_precip_fig)
