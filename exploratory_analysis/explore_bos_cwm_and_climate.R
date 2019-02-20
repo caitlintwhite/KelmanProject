@@ -185,28 +185,53 @@ rownames(bos_cwm) <- seq(1:nrow(bos_cwm)) #clean up rownames
 
 # can visualize relationship between bos CWM and environment.. CWM to total annual cover.. whatever you choose..
 #wide form for creating linear regression
-CWM_climate_merged_W <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5")],  by=c("Year"="year")) 
+CWM_climate_merged_W <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5", "tmax_5", "tmin_5", "tmean_5", "spei_12", "tmean_12", "precip_12")],  by=c("Year"="year")) 
 
 #long form for creating figures 
 CWM_climate_merged_L <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5")],  by=c("Year"="year"))%>%
-gather( key = "trait_name", value, RMR:seed_mass, precip_5, spei_5)
+  gather( key = "trait_name", value, RMR:seed_mass, precip_5, spei_5)
 
 #create figure to look at LDMC and precip 
-area7_LDMC_precip_fig <- ggplot(CWM_climate_merged, mapping = aes(x=precip_5, y=LDMC))+
+area7_LDMC_precip_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=precip_5, y=LDMC))+
  geom_point(aes(col=transect_ID))+
   geom_smooth(method = "lm", col ="black") +
   geom_smooth(aes(col=transect_ID), method = "lm", se = F)
 
 area7_LDMC_precip_fig
 
-#running linear regression
-LDMC_precip_LM <- lm(formula = LDMC ~ precip_5, data = CWM_climate_merged)
+#running linear regression on LDMC and precip_5
+LDMC_precip_LM <- lm(formula = LDMC ~ precip_5, data = CWM_climate_merged_W)
 summary(LDMC_precip_LM)
 
 #create figure to look at mean temp over growing season and SLA
-ggplot(CWM_climate_merged, mapping = aes(x=tmean_5, y=SLA, col=))+
-  geom_line()+
-  geom_point()
+SLA_tmean5_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=tmean_5, y=SLA))+
+ geom_point(aes(col=transect_ID))+
+  geom_smooth(method = "lm", col="black")+
+  geom_smooth(aes(col=transect_ID), method = "lm", se = F)
+
+#run linear regression for SLA and tmean_5. pvalue .18 and r^2 value .003
+SLA_tmean5_LM <- lm(formula = SLA ~ tmean_5, data = CWM_climate_merged_W)
+summary(SLA_tmean5_LM)
+
+#plotting tmin_5 and RDMC
+RDMC_tmin5_fig <-ggplot(CWM_climate_merged_W, mapping = aes(x=tmin_5, y=RDMC))+
+  geom_point(aes(col=transect_ID))+
+  geom_smooth(method = "lm", col="black")+
+  geom_smooth(aes(col=transect_ID), method = "lm", se = F)
+
+#linear regression for tmin_5 and RDMC. pvalue of .72 and r^2 value -.004 
+RDMC_tmin5_LM <- lm(formula = RDMC ~ tmin_5, data = CWM_climate_merged_W)
+summary(RDMC_tmin5_LM)
+
+#plot root mass ratio and spei_12. p value .5 and r^2 value of -.002
+RMR_spei12_fig <-ggplot(CWM_climate_merged_W, mapping = aes(x=spei_12, y=RMR))+
+  geom_point(aes(col=transect_ID))+
+  geom_smooth(method = "lm", col="black")+
+  geom_smooth(aes(col=transect_ID), method = "lm", se = F)
+
+#linear regression for RMR and spei_12
+RMR_spei12_LM<- lm(formula = RMR ~ spei_12, data = CWM_climate_merged_W)
+summary(RMR_spei12_LM)
 
 #plotting precipitation over time
 precip_overT_fig <-ggplot(clim_dat, mapping = aes(x=year, y=precip_5)) +
@@ -246,3 +271,6 @@ traits_correlation <- cor(bos_cwm[traits])
 
 #save figures to github
 ggsave("./exploratory_analysis/figures/area7_LDMC_fig.pdf", area7_LDMC_precip_fig)
+ggsave("./exploratory_analysis/figures/SLA_tmean5_fig.pdf", SLA_tmean5_fig)
+ggsave("./exploratory_analysis/figures/RDMC_tmin5_fig.pdf", RDMC_tmin5_fig)
+ggsave("./exploratory_analysis/figures/RMR_spei12_fig.pdf", RMR_spei12_fig )
