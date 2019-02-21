@@ -188,8 +188,8 @@ rownames(bos_cwm) <- seq(1:nrow(bos_cwm)) #clean up rownames
 CWM_climate_merged_W <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5", "tmax_5", "tmin_5", "tmean_5", "spei_12", "tmean_12", "precip_12")],  by=c("Year"="year")) 
 
 #long form for creating figures 
-CWM_climate_merged_L <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5")],  by=c("Year"="year"))%>%
-  gather( key = "trait_name", value, RMR:seed_mass, precip_5, spei_5)
+CWM_climate_merged_L <- left_join(bos_cwm, clim_dat[c("year", "precip_12", "spei_12", "tmean_12", "spei_5")],  by=c("Year"="year"))%>%
+  gather( key = "trait_name", value, RMR:seed_mass, precip_12, spei_12, tmean_12)
 
 #create figure to look at LDMC and precip 
 area7_LDMC_precip_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=precip_5, y=LDMC))+
@@ -208,6 +208,8 @@ SLA_tmean5_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=tmean_5, y=SLA))+
  geom_point(aes(col=transect_ID))+
   geom_smooth(method = "lm", col="black")+
   geom_smooth(aes(col=transect_ID), method = "lm", se = F)
+
+SLA_tmean5_fig
 
 #run linear regression for SLA and tmean_5. pvalue .18 and r^2 value .003
 SLA_tmean5_LM <- lm(formula = SLA ~ tmean_5, data = CWM_climate_merged_W)
@@ -229,6 +231,8 @@ RMR_spei12_fig <-ggplot(CWM_climate_merged_W, mapping = aes(x=spei_12, y=RMR))+
   geom_smooth(method = "lm", col="black")+
   geom_smooth(aes(col=transect_ID), method = "lm", se = F)
 
+RMR_spei12_fig
+
 #linear regression for RMR and spei_12
 RMR_spei12_LM<- lm(formula = RMR ~ spei_12, data = CWM_climate_merged_W)
 summary(RMR_spei12_LM)
@@ -245,6 +249,8 @@ finalheight_spei12_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=spei_12, 
   geom_point(aes(col=transect_ID))+
   geom_smooth(method = "lm", col="black")+
   geom_smooth(aes(col=transect_ID), method = "lm", se = F)
+
+finalheight_spei12_fig
 
 #linear regression for final plant height and spei_12. pvalue .03 and r^2 value .01
 finalheight_spei12_LM <- lm(formula = final_height_cm ~ spei_12, data = CWM_climate_merged_W)
@@ -266,16 +272,27 @@ ggplot(subset( CWM_climate_merged_L, trait_name%in% c("SLA", "precip_5", "spei_5
 
 
 
-#plot panel of all traits. #how to make this look more clean?
-ggplot(subset( CWM_climate_merged_L, trait_name%in% c("SLA", "RMR", "RDMC", "SRL", "Rdiam", "LDMC", "seed_mass")), mapping = aes(Year, value))+
+#panel plot of spei and traits over time 
+CWMtraits_overT_fig <-ggplot(subset( CWM_climate_merged_L, trait_name%in% c("spei_5", "RMR", "SLA", "RDMC", "seed_mass", "LDMC")), mapping = aes(Year, value))+
   geom_line()+
   geom_point()+
-  facet_grid(trait_name~., scales = "free_y")+
-  theme_bw()
+  scale_x_continuous(breaks = seq(1992, 2016, by = 2))+
+  theme(axis.text.x = element_text(angle=45, hjust = 1))+
+  facet_grid(trait_name~., scales = "free_y")
+  
+  
+CWMtraits_overT_fig
+
+#plot changes in environmental variables over time (precip_12, spei_12, tmean_12)
+Enviro_variables_overT_panel <-ggplot(subset( CWM_climate_merged_L, trait_name%in% c("precip_12", "tmean_12", "spei_12")), mapping = aes(Year, value))+
+  geom_line()+
+  geom_point()+
+  scale_x_continuous(breaks = seq(1992, 2016, by = 2))+
+  theme(axis.text.x = element_text(angle=45, hjust = 1))+
+  facet_grid(trait_name~., scales = "free_y")
   
 
-
-
+Enviro_variables_overT_panel
 
 #creating correlation matrix for CWM traits
 traits_correlation <- cor(bos_cwm[traits])
@@ -286,3 +303,4 @@ ggsave("./exploratory_analysis/figures/SLA_tmean5_fig.pdf", SLA_tmean5_fig)
 ggsave("./exploratory_analysis/figures/RDMC_tmin5_fig.pdf", RDMC_tmin5_fig)
 ggsave("./exploratory_analysis/figures/RMR_spei12_fig.pdf", RMR_spei12_fig )
 ggsave("./exploratory_analysis/figures/finalheight_spei12_fig.pdf", finalheight_spei12_fig)
+ggsave("./exploratory_analysis/figures/Enviro_variables_overT_panel.pdf", Enviro_variables_overT_panel)
