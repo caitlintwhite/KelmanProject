@@ -103,7 +103,7 @@ transects <- c("7_1", "7_10", "7_2", "7_3", "7_4", "7_5", "7_6", "7_7", "7_9") #
 yrs <- c(1991:2016) # yrs in dataset range 1991-2016
 
 # specify vector of desired traits
-traits <- colnames(trait_dat)[c(10,12:14,17,18,35)] # this will be only line to modify, everything below here generic
+traits <- colnames(trait_dat)[c(7,10,12:14,17,18,35)] # this will be only line to modify, everything below here generic
 traits # visually check if traits you expected
 
 
@@ -240,11 +240,22 @@ precip_overT_fig <-ggplot(clim_dat, mapping = aes(x=year, y=precip_5)) +
 
 precip_overT_fig
 
+#plot final plant height and spei_12
+finalheight_spei12_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=spei_12, y=final_height_cm))+
+  geom_point(aes(col=transect_ID))+
+  geom_smooth(method = "lm", col="black")+
+  geom_smooth(aes(col=transect_ID), method = "lm", se = F)
+
+#linear regression for final plant height and spei_12. pvalue .03 and r^2 value .01
+finalheight_spei12_LM <- lm(formula = final_height_cm ~ spei_12, data = CWM_climate_merged_W)
+summary(finalheight_spei12_LM)
+
 #plotting drought index over time
 drought_overT_fig <- ggplot(clim_dat, mapping = aes(x=year, y=spei_12))+
   geom_col()
 
 drought_overT_fig
+
 
 #plot CWM for SLA and precip over time
 ggplot(subset( CWM_climate_merged_L, trait_name%in% c("SLA", "precip_5", "spei_5", "RMR")), mapping = aes(Year, value))+
@@ -274,3 +285,4 @@ ggsave("./exploratory_analysis/figures/area7_LDMC_fig.pdf", area7_LDMC_precip_fi
 ggsave("./exploratory_analysis/figures/SLA_tmean5_fig.pdf", SLA_tmean5_fig)
 ggsave("./exploratory_analysis/figures/RDMC_tmin5_fig.pdf", RDMC_tmin5_fig)
 ggsave("./exploratory_analysis/figures/RMR_spei12_fig.pdf", RMR_spei12_fig )
+ggsave("./exploratory_analysis/figures/finalheight_spei12_fig.pdf", finalheight_spei12_fig)
