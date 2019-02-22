@@ -179,6 +179,7 @@ rownames(bos_cwm) <- seq(1:nrow(bos_cwm)) #clean up rownames
 
 
 
+
 ##########################################
 # -- EXPLORE CWM WITH OTHER DATASETS -----
 ##########################################
@@ -189,7 +190,7 @@ CWM_climate_merged_W <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_
 
 #long form for creating figures 
 CWM_climate_merged_L <- left_join(bos_cwm, clim_dat[c("year", "precip_12", "spei_12", "tmean_12", "spei_5")],  by=c("Year"="year"))%>%
-  gather( key = "trait_name", value, RMR:seed_mass, precip_12, spei_12, tmean_12)
+  gather( key = "trait_name", value, RMR:seed_mass, precip_12, spei_12, tmean_12, spei_5)
 
 #create figure to look at LDMC and precip 
 area7_LDMC_precip_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=precip_5, y=LDMC))+
@@ -220,6 +221,8 @@ RDMC_tmin5_fig <-ggplot(CWM_climate_merged_W, mapping = aes(x=tmin_5, y=RDMC))+
   geom_point(aes(col=transect_ID))+
   geom_smooth(method = "lm", col="black")+
   geom_smooth(aes(col=transect_ID), method = "lm", se = F)
+
+RDMC_tmin5_fig
 
 #linear regression for tmin_5 and RDMC. pvalue of .72 and r^2 value -.004 
 RDMC_tmin5_LM <- lm(formula = RDMC ~ tmin_5, data = CWM_climate_merged_W)
@@ -273,15 +276,16 @@ ggplot(subset( CWM_climate_merged_L, trait_name%in% c("SLA", "precip_5", "spei_5
 
 
 #panel plot of spei and traits over time 
-CWMtraits_overT_fig <-ggplot(subset( CWM_climate_merged_L, trait_name%in% c("spei_5", "RMR", "SLA", "RDMC", "seed_mass", "LDMC")), mapping = aes(Year, value))+
+spei5_traits_overT_panel <-ggplot(subset( CWM_climate_merged_L, trait_name%in% c("spei_5", "RMR", "SLA", "RDMC", "seed_mass", "LDMC")), mapping = aes(Year, value))+
   geom_line()+
-  geom_point()+
+  geom_point(size = 0.5)+
   scale_x_continuous(breaks = seq(1992, 2016, by = 2))+
   theme(axis.text.x = element_text(angle=45, hjust = 1))+
   facet_grid(trait_name~., scales = "free_y")
   
   
-CWMtraits_overT_fig
+  
+spei5_traits_overT_panel
 
 #plot changes in environmental variables over time (precip_12, spei_12, tmean_12)
 Enviro_variables_overT_panel <-ggplot(subset( CWM_climate_merged_L, trait_name%in% c("precip_12", "tmean_12", "spei_12")), mapping = aes(Year, value))+
@@ -304,3 +308,4 @@ ggsave("./exploratory_analysis/figures/RDMC_tmin5_fig.pdf", RDMC_tmin5_fig)
 ggsave("./exploratory_analysis/figures/RMR_spei12_fig.pdf", RMR_spei12_fig )
 ggsave("./exploratory_analysis/figures/finalheight_spei12_fig.pdf", finalheight_spei12_fig)
 ggsave("./exploratory_analysis/figures/Enviro_variables_overT_panel.pdf", Enviro_variables_overT_panel)
+ggsave("./exploratory_analysis/figures/spei5_traits_overT_panel.pdf", spei5_traits_overT_panel)
