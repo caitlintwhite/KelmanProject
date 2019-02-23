@@ -33,8 +33,8 @@ for(l in libs){
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-gdrive <- "../../Google\ Drive" #ctw path
+gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+#gdrive <- "../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 #read in datasets
@@ -111,7 +111,7 @@ traits <- colnames(trait_dat)[c(7,10,12:14,17,18,35)] # this will be only line t
 traits # visually check if traits you expected
 
 # specify climate variables desired
-climvars <- c("precip_5", "spei_5", "tmax_5", "tmin_5", "tmean_5", "spei_12", "tmean_12", "precip_12")
+climvars <- c("precip_5", "spei_5", "tmax_5", "tmin_5", "tmean_5", "spei_12", "tmean_12", "precip_12", "gs_dry_days", "gs_days_rain")
 
 # create vector of spp codes that exist in both veg data and trait data for selected sites, yrs, and traits
 abundance_spp <- with(bos_dat, unique(OSMP_Code.clean[transect_ID %in% transects & Year %in% yrs]))
@@ -215,6 +215,8 @@ CWM_climate_merged_W <- left_join(bos_cwm, clim_dat[c("year", climvars)],  by=c(
 CWM_climate_merged_L <- left_join(bos_cwm, clim_dat[c("year", climvars)],  by=c("Year"="year"))%>%
   gather( key = "trait_name", value, traits, climvars)
 
+#=====TRANSECT LEVEL CWM FIGURES AND LM=====
+
 #create figure to look at LDMC and precip 
 area7_LDMC_precip_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=precip_5, y=LDMC))+
  geom_point(aes(col=transect_ID))+
@@ -263,12 +265,12 @@ RMR_spei12_fig
 RMR_spei12_LM<- lm(formula = RMR ~ spei_12, data = CWM_climate_merged_W)
 summary(RMR_spei12_LM)
 
-#plotting precipitation over time
-precip_overT_fig <-ggplot(clim_dat, mapping = aes(x=year, y=precip_5)) +
+#plotting precipitation over time. commenting it out because it's included in the panel figure
+#precip_overT_fig <-ggplot(clim_dat, mapping = aes(x=year, y=precip_5)) +
   geom_line()+
   geom_point()
 
-precip_overT_fig
+#precip_overT_fig
 
 #plot final plant height and spei_12
 finalheight_spei12_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=spei_12, y=final_height_cm))+
@@ -282,11 +284,11 @@ finalheight_spei12_fig
 finalheight_spei12_LM <- lm(formula = final_height_cm ~ spei_12, data = CWM_climate_merged_W)
 summary(finalheight_spei12_LM)
 
-#plotting drought index over time
-drought_overT_fig <- ggplot(clim_dat, mapping = aes(x=year, y=spei_12))+
+#plotting drought index over time. Also commenting out because it's included in the panel plot 
+#drought_overT_fig <- ggplot(clim_dat, mapping = aes(x=year, y=spei_12))+
   geom_col()
 
-drought_overT_fig
+#drought_overT_fig
 
 
 #plot CWM for SLA and precip over time
@@ -296,7 +298,55 @@ ggplot(subset( CWM_climate_merged_L, trait_name%in% c("SLA", "precip_5", "spei_5
   facet_grid(trait_name~., scales = "free_y")+
   theme_bw()
 
+#======AREA 7 CWM FIGURES AND LM=====
+#graph pooled cwm final height and spei_12
+pooledCWM_height_spei12_fig <-ggplot(CWM_climate_merged_W, mapping = aes(x=spei_12, y=final_height_cm))+
+  geom_point()+
+  geom_smooth(method = "lm", col="black")+
+  geom_smooth(method = "lm", se = F)
 
+pooledCWM_height_spei12_fig
+
+#linear regression. p value of .06 and r^2 .10
+pooledLM_height_spei12<- lm(formula = final_height_cm ~ spei_12, data = CWM_climate_merged_W)
+summary(pooledLM_height_spei12)
+
+#graph pooled cwm LDMC and precip_5
+pooledCWM_precip12_LDMC_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=precip_12, y=LDMC))+
+  geom_point()+
+  geom_smooth(method = "lm", col ="black") +
+  geom_smooth(method = "lm", se = F)
+
+pooledCWM_precip12_LDMC_fig
+
+#linear regression pooledCWM LDMC and precip_12
+#p value .18 and r^2 .03
+pooledLM_precip12_LDMC <- lm(formula = LDMC ~ precip_12, data = CWM_climate_merged_W)
+summary(pooledLM_precip12_LDMC)
+
+pool_tmax5_SLA_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=tmax_5, y=SLA))+
+  geom_point()+
+  geom_smooth(method = "lm", col ="black") +
+  geom_smooth(method = "lm", se = F)
+  
+pool_tmax5_SLA_fig
+
+#pooled linear model tmax and SLA
+#p value .2 and r^2 .02
+pooledLM_tmax5_SLA <- lm(formula = SLA ~ tmax_5, data = CWM_climate_merged_W)
+summary(pooledLM_tmax5_SLA)
+
+poolRMR_spei12_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=spei_12, y=RMR))+
+geom_point()+
+geom_smooth(method = "lm", col ="black")+
+geom_smooth(method = "lm", se = F)
+
+poolRMR_spei12_fig
+
+#linear model pooled RMR and spei12
+#p value .06 and adjusted r^2 .10
+pooledLM_spei12_RMR <-lm(formula = RMR ~ spei_12, data = CWM_climate_merged_W)
+summary(pooledLM_height_spei12)
 
 #panel plot of spei and traits over time 
 spei5_traits_overT_panel <-ggplot(subset( CWM_climate_merged_L, trait_name%in% c("spei_5", "RMR", "SLA", "RDMC", "seed_mass", "LDMC")), mapping = aes(Year, value))+
@@ -312,10 +362,10 @@ spei5_traits_overT_panel <-ggplot(subset( CWM_climate_merged_L, trait_name%in% c
   
 spei5_traits_overT_panel
 
-#plot changes in environmental variables over time (precip_12, spei_12, tmean_12)
+#plot changes in environmental variables over time (tmean_12, precip_12, spei_12)
 Enviro_variables_overT_panel <-ggplot(subset( CWM_climate_merged_L, trait_name%in% c("precip_12", "tmean_12", "spei_12")), mapping = aes(Year, value))+
   geom_line()+
-  geom_point()+
+  geom_point(size=.5)+
   scale_x_continuous(breaks = seq(1992, 2016, by = 2))+
   theme(axis.text.x = element_text(angle=45, hjust = 1))+
   facet_grid(trait_name~., scales = "free_y")
@@ -334,3 +384,7 @@ ggsave("./exploratory_analysis/figures/RMR_spei12_fig.pdf", RMR_spei12_fig )
 ggsave("./exploratory_analysis/figures/finalheight_spei12_fig.pdf", finalheight_spei12_fig)
 ggsave("./exploratory_analysis/figures/Enviro_variables_overT_panel.pdf", Enviro_variables_overT_panel)
 ggsave("./exploratory_analysis/figures/spei5_traits_overT_panel.pdf", spei5_traits_overT_panel)
+ggsave("./exploratory_analysis/figures/pooledCWM_height_spei12_fig.pdf", pooledCWM_height_spei12_fig)
+ggsave("./exploratory_analysis/figures/pooledCWM_precip12_LDMC_fig.pdf", pooledCWM_precip12_LDMC_fig)
+ggsave("./exploratory_analysis/figures/pool_tmax5_SLA_fig.pdf", pool_tmax5_SLA_fig)
+ggsave("./exploratory_analysis/figures/poolRMR_spei12_fig.pdf", poolRMR_spei12_fig)
