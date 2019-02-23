@@ -33,8 +33,8 @@ for(l in libs){
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-#gdrive <- "../../Google\ Drive" #ctw path
+#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+gdrive <- "../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 #read in datasets
@@ -102,10 +102,16 @@ bos_species[which(!bos_species %in%trait_species )]
 transects <- c("7_1", "7_10", "7_2", "7_3", "7_4", "7_5", "7_6", "7_7", "7_9") # transect_ID value; if want all use: unique(bos_dat$transect_ID)
 yrs <- c(1991:2016) # yrs in dataset range 1991-2016
 
+# specify whether want to do individual transect CWM (pool_CWM = FALSE) or "regional" pooled community CWM (pool_CWM = TRUE)
+# if pooled, will sum spp abundances across all transects, by year, before creating abundance matrix
+pool_CWM <- TRUE
+
 # specify vector of desired traits
 traits <- colnames(trait_dat)[c(7,10,12:14,17,18,35)] # this will be only line to modify, everything below here generic
 traits # visually check if traits you expected
 
+# specify climate variables desired
+climvars <- c("precip_5", "spei_5", "tmax_5", "tmin_5", "tmean_5", "spei_12", "tmean_12", "precip_12")
 
 # create vector of spp codes that exist in both veg data and trait data for selected sites, yrs, and traits
 abundance_spp <- with(bos_dat, unique(OSMP_Code.clean[transect_ID %in% transects & Year %in% yrs]))
@@ -122,14 +128,27 @@ overlap <- subset(spp_lookup, JL_Code %in% trait_spp & OSMP_Code.clean %in% abun
 
 # -- (1) Create species abundance matrix -----
 #Formatting community data for community weighted means
+# first aggregate cover data, depending on if poolin spp abundances across transects or not
+if(pool_CWM){
+  # aggregate cover by spp by year across all transects
+  cov_dat <- subset(bos_dat, transect_ID %in% transects & Year %in% yrs) %>%
+    group_by(Year, OSMP_Code.clean) %>%
+    summarize(cover = sum(Cov_freq_val)) %>% # sum all hits per species per transect per year
+    ungroup() %>% # remove grouping
+    mutate(sitekey = Year) # sitekey for abundance matrix rownames will be year only
+}else{
+  # aggregate cover by spp by year *by transect*
+  cov_dat <- subset(bos_dat, transect_ID %in% transects & Year %in% yrs) %>%
+    group_by(transect_ID, Year, OSMP_Code.clean) %>%
+    summarize(cover = sum(Cov_freq_val)) %>% # sum all hits per species per transect per year
+    ungroup() %>% # remove grouping
+    mutate(sitekey = paste(transect_ID, Year, sep = ".")) # concatenate transect and year for unique site ID for abundance matrix rownames
+}
+
 #1 subset cover data for desired sites, yrs
-abundance <- subset(bos_dat, transect_ID %in% transects & Year %in% yrs) %>%
-  group_by(transect_ID, Year, OSMP_Code.clean) %>%
-  summarize(cover = sum(Cov_freq_val)) %>% # sum all hits per species per transect per year
-  ungroup() %>% # remove grouping
+abundance <-  cov_dat %>% # start with aggregate cover that has sitekey created
   left_join(overlap[c("JL_Code", "OSMP_Code.clean")]) %>% # add lookup table columns for subsetting to spp in trait dataset
   subset(!is.na(JL_Code)) %>% # only keep spp in trait dataset
-  mutate(sitekey = paste(transect_ID, Year, sep = ".")) %>% # concatenate transect and year for unique site ID
   dplyr::select(-OSMP_Code.clean) %>% # remove OSMP_Code and use JL_code for spp names
   spread(JL_Code, cover, fill = 0) %>% # spread out species cover, fill any empty cells (i.e. species not present) with "0"
   as.data.frame()
@@ -140,8 +159,7 @@ abundance <- subset(bos_dat, transect_ID %in% transects & Year %in% yrs) %>%
 
 # continue making spp abundance matrix
 rownames(abundance) <- abundance$sitekey #assign unique transect-year as rowname
-
-abundance <- dplyr::select(abundance, -c(transect_ID, Year, sitekey)) %>% #remove transect_ID, Year, and site
+abundance <- abundance[!colnames(abundance) %in% c("sitekey", "Year", "transect_ID")] %>% # remove Year, site, and transect_ID (if there)
   as.matrix() #reclass object as matrix
 
 # convert to relative abundance
@@ -172,11 +190,16 @@ summary(sort(unique(colnames(rel_abundance))) == sort(unique(rownames(fxnl_df)))
 bos_cwm <- functcomp(x = fxnl_df, a = abundance)
   
 # back out transect_ID and year
-bos_cwm$sitekey <- rownames(bos_cwm) #store unique site-year key in its own column
-bos_cwm$transect_ID <- gsub("[.].*$", "", bos_cwm$sitekey) #everything after period in sitekey is removed
-bos_cwm$Year <- as.numeric(gsub("[0-9].*[0-9][.]", "", bos_cwm$sitekey)) #everything before period in sitekey is removed, convert year from character to number
+bos_cwm$sitekey <- rownames(bos_cwm) #store unique site-year key in its own column; sitekey will always be the same as Year if doing a pooled community CWM
 rownames(bos_cwm) <- seq(1:nrow(bos_cwm)) #clean up rownames
+bos_cwm$Year <- as.numeric(gsub("[0-9].*[0-9][.]", "", bos_cwm$sitekey)) #Year will always be in CWM; everything before period in sitekey is removed, convert year from character to number
 
+# extract transect_ID from sitekey only if pool_CWM is FALSE (i.e. it's an transect-level CWM)
+if(pool_CWM==FALSE){
+  bos_cwm$transect_ID <- gsub("[.].*$", "", bos_cwm$sitekey) #everything after period in sitekey is removed
+}
+# re-order columns (transect_ID alphabetically comes between sitekey and Year so this line will always work)
+bos_cwm <- dplyr::select(bos_cwm, sitekey:Year, traits)
 
 
 
@@ -186,11 +209,11 @@ rownames(bos_cwm) <- seq(1:nrow(bos_cwm)) #clean up rownames
 
 # can visualize relationship between bos CWM and environment.. CWM to total annual cover.. whatever you choose..
 #wide form for creating linear regression
-CWM_climate_merged_W <- left_join(bos_cwm, clim_dat[c("year", "precip_5", "spei_5", "tmax_5", "tmin_5", "tmean_5", "spei_12", "tmean_12", "precip_12")],  by=c("Year"="year")) 
+CWM_climate_merged_W <- left_join(bos_cwm, clim_dat[c("year", climvars)],  by=c("Year"="year")) 
 
 #long form for creating figures 
-CWM_climate_merged_L <- left_join(bos_cwm, clim_dat[c("year", "precip_12", "spei_12", "tmean_12", "spei_5")],  by=c("Year"="year"))%>%
-  gather( key = "trait_name", value, RMR:seed_mass, precip_12, spei_12, tmean_12, spei_5)
+CWM_climate_merged_L <- left_join(bos_cwm, clim_dat[c("year", climvars)],  by=c("Year"="year"))%>%
+  gather( key = "trait_name", value, traits, climvars)
 
 #create figure to look at LDMC and precip 
 area7_LDMC_precip_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=precip_5, y=LDMC))+
@@ -279,7 +302,9 @@ ggplot(subset( CWM_climate_merged_L, trait_name%in% c("SLA", "precip_5", "spei_5
 spei5_traits_overT_panel <-ggplot(subset( CWM_climate_merged_L, trait_name%in% c("spei_5", "RMR", "SLA", "RDMC", "seed_mass", "LDMC")), mapping = aes(Year, value))+
   geom_line()+
   geom_point(size = 0.5)+
+  geom_point(data = subset(CWM_climate_merged_L, trait_name %in% "spei_5"), aes(Year, value, col = value >= 0)) +
   scale_x_continuous(breaks = seq(1992, 2016, by = 2))+
+  scale_color_discrete(guide = "none") +
   theme(axis.text.x = element_text(angle=45, hjust = 1))+
   facet_grid(trait_name~., scales = "free_y")
   
