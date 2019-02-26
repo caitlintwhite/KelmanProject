@@ -311,7 +311,7 @@ pooledCWM_height_spei12_fig
 pooledLM_height_spei12<- lm(formula = final_height_cm ~ spei_12, data = CWM_climate_merged_W)
 summary(pooledLM_height_spei12)
 
-#graph pooled cwm LDMC and precip_5
+#graph pooled cwm LDMC and precip_12
 pooledCWM_precip12_LDMC_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=precip_12, y=LDMC))+
   geom_point()+
   geom_smooth(method = "lm", col ="black") +
@@ -321,8 +321,10 @@ pooledCWM_precip12_LDMC_fig
 
 #linear regression pooledCWM LDMC and precip_12
 #p value .18 and r^2 .03
+#idea to make panel plot of RDMC and LDMC? 
 pooledLM_precip12_LDMC <- lm(formula = LDMC ~ precip_12, data = CWM_climate_merged_W)
 summary(pooledLM_precip12_LDMC)
+
 
 pool_tmax5_SLA_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=tmax_5, y=SLA))+
   geom_point()+
