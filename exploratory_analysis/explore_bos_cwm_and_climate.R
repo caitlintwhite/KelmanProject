@@ -207,17 +207,17 @@ bos_cwm <- dplyr::select(bos_cwm, sitekey:Year, traits)
 # ** uncomment which code line you want depending on whether you're running pooled or tranect-level CWM
 if(pool_CWM){
   # pooled abundance matrix
-  write.csv(abundance, paste0(gdrive,"/KelmanProject/Data/bos_pooled_relabundance.csv", row.names = T))
+  write.csv(abundance, paste0(gdrive,"/KelmanProject/Data/bos_pooled_relabundance.csv"), row.names = T)
   # pooled CWMs, annually
-  write.csv(bos_cwm, paste0(gdrive,"/KelmanProject/Data/bos_pooled_CWM.csv", row.names = F))
+  write.csv(bos_cwm, paste0(gdrive,"/KelmanProject/Data/bos_pooled_CWM.csv"), row.names = F)
 }else{
   # write tranect-yr abundance matrix
-  write.csv(abundance, paste0(gdrive,"/KelmanProject/Data/bos_transect_relabundance.csv", row.names = F))
+  write.csv(abundance, paste0(gdrive,"/KelmanProject/Data/bos_transect_relabundance.csv"), row.names = T)
   # transect level CWM, annually
-  write.csv(bos_cwm, paste0(gdrive,"/KelmanProject/Data/bos_transect_CWM.csv", row.names = F))
+  write.csv(bos_cwm, paste0(gdrive,"/KelmanProject/Data/bos_transect_CWM.csv"), row.names = F)
 }
 # write out functional trait data frame (stays the same whether pooled or transect-level)
-write.csv(fxnl_df, paste0(gdrive,"/KelmanProject/Data/bos_pooled_CWM.csv", row.names = F))
+write.csv(fxnl_df, paste0(gdrive,"/KelmanProject/Data/fxnl_trait_community_df.csv"), row.names = T)
 
 
 ##########################################
