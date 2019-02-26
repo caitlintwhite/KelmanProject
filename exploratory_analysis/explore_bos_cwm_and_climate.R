@@ -188,7 +188,7 @@ summary(sort(unique(colnames(rel_abundance))) == sort(unique(rownames(fxnl_df)))
 
 # -- (4) Create community weighted means -----
 bos_cwm <- functcomp(x = fxnl_df, a = abundance)
-  
+
 # back out transect_ID and year
 bos_cwm$sitekey <- rownames(bos_cwm) #store unique site-year key in its own column; sitekey will always be the same as Year if doing a pooled community CWM
 rownames(bos_cwm) <- seq(1:nrow(bos_cwm)) #clean up rownames
@@ -202,12 +202,22 @@ if(pool_CWM==FALSE){
 bos_cwm <- dplyr::select(bos_cwm, sitekey:Year, traits)
 
 
-# write out bos_cwm data frames for use in modeling
+# -- WRITE OUT DATA FRAMES FOR MODELING USE -----
+# write out abundance and bos_cwm data frames for use in modeling
 # ** uncomment which code line you want depending on whether you're running pooled or tranect-level CWM
-# pooled CWMs, annually
-write.csv(bos_cwm, "modeling/bos_pooled_CWM.csv", row.names = F)
-# tranect level CWM, annually
-write.csv(bos_cwm, "modeling/bos_transect_CWM.csv", row.names = F)
+if(pool_CWM){
+  # pooled abundance matrix
+  write.csv(abundance, paste0(gdrive,"/KelmanProject/Data/bos_pooled_relabundance.csv", row.names = T))
+  # pooled CWMs, annually
+  write.csv(bos_cwm, paste0(gdrive,"/KelmanProject/Data/bos_pooled_CWM.csv", row.names = F))
+}else{
+  # write tranect-yr abundance matrix
+  write.csv(abundance, paste0(gdrive,"/KelmanProject/Data/bos_transect_relabundance.csv", row.names = F))
+  # transect level CWM, annually
+  write.csv(bos_cwm, paste0(gdrive,"/KelmanProject/Data/bos_transect_CWM.csv", row.names = F))
+}
+# write out functional trait data frame (stays the same whether pooled or transect-level)
+write.csv(fxnl_df, paste0(gdrive,"/KelmanProject/Data/bos_pooled_CWM.csv", row.names = F))
 
 
 ##########################################
@@ -226,7 +236,7 @@ CWM_climate_merged_L <- left_join(bos_cwm, clim_dat[c("year", climvars)],  by=c(
 
 #create figure to look at LDMC and precip 
 area7_LDMC_precip_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=precip_5, y=LDMC))+
- geom_point(aes(col=transect_ID))+
+  geom_point(aes(col=transect_ID))+
   geom_smooth(method = "lm", col ="black") +
   geom_smooth(aes(col=transect_ID), method = "lm", se = F)
 
@@ -238,7 +248,7 @@ summary(LDMC_precip_LM)
 
 #create figure to look at mean temp over growing season and SLA
 SLA_tmean5_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=tmean_5, y=SLA))+
- geom_point(aes(col=transect_ID))+
+  geom_point(aes(col=transect_ID))+
   geom_smooth(method = "lm", col="black")+
   geom_smooth(aes(col=transect_ID), method = "lm", se = F)
 
@@ -274,7 +284,7 @@ summary(RMR_spei12_LM)
 
 #plotting precipitation over time. commenting it out because it's included in the panel figure
 #precip_overT_fig <-ggplot(clim_dat, mapping = aes(x=year, y=precip_5)) +
-  geom_line()+
+geom_line()+
   geom_point()
 
 #precip_overT_fig
@@ -293,7 +303,7 @@ summary(finalheight_spei12_LM)
 
 #plotting drought index over time. Also commenting out because it's included in the panel plot 
 #drought_overT_fig <- ggplot(clim_dat, mapping = aes(x=year, y=spei_12))+
-  geom_col()
+geom_col()
 
 #drought_overT_fig
 
@@ -335,7 +345,7 @@ pool_tmax5_SLA_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=tmax_5, y=SLA
   geom_point()+
   geom_smooth(method = "lm", col ="black") +
   geom_smooth(method = "lm", se = F)
-  
+
 pool_tmax5_SLA_fig
 
 #pooled linear model tmax and SLA
@@ -344,9 +354,9 @@ pooledLM_tmax5_SLA <- lm(formula = SLA ~ tmax_5, data = CWM_climate_merged_W)
 summary(pooledLM_tmax5_SLA)
 
 poolRMR_spei12_fig <- ggplot(CWM_climate_merged_W, mapping = aes(x=spei_12, y=RMR))+
-geom_point()+
-geom_smooth(method = "lm", col ="black")+
-geom_smooth(method = "lm", se = F)
+  geom_point()+
+  geom_smooth(method = "lm", col ="black")+
+  geom_smooth(method = "lm", se = F)
 
 poolRMR_spei12_fig
 
@@ -364,9 +374,9 @@ spei5_traits_overT_panel <-ggplot(subset( CWM_climate_merged_L, trait_name%in% c
   scale_color_discrete(guide = "none") +
   theme(axis.text.x = element_text(angle=45, hjust = 1))+
   facet_grid(trait_name~., scales = "free_y")
-  
-  
-  
+
+
+
 spei5_traits_overT_panel
 
 #plot changes in environmental variables over time (tmean_12, precip_12, spei_12)
@@ -376,7 +386,7 @@ Enviro_variables_overT_panel <-ggplot(subset( CWM_climate_merged_L, trait_name%i
   scale_x_continuous(breaks = seq(1992, 2016, by = 2))+
   theme(axis.text.x = element_text(angle=45, hjust = 1))+
   facet_grid(trait_name~., scales = "free_y")
-  
+
 
 Enviro_variables_overT_panel
 
