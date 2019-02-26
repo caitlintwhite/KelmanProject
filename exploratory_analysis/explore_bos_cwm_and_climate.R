@@ -34,7 +34,7 @@ for(l in libs){
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
 #gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-gdrive <- "../../Google\ Drive" #ctw path
+gdrive <- "../../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 #read in datasets
@@ -207,12 +207,12 @@ bos_cwm <- dplyr::select(bos_cwm, sitekey:Year, traits)
 # ** uncomment which code line you want depending on whether you're running pooled or tranect-level CWM
 if(pool_CWM){
   # pooled abundance matrix
-  write.csv(abundance, paste0(gdrive,"/KelmanProject/Data/bos_pooled_relabundance.csv"), row.names = T)
+  write.csv(rel_abundance, paste0(gdrive,"/KelmanProject/Data/bos_pooled_relabundance.csv"), row.names = T)
   # pooled CWMs, annually
   write.csv(bos_cwm, paste0(gdrive,"/KelmanProject/Data/bos_pooled_CWM.csv"), row.names = F)
 }else{
   # write tranect-yr abundance matrix
-  write.csv(abundance, paste0(gdrive,"/KelmanProject/Data/bos_transect_relabundance.csv"), row.names = T)
+  write.csv(rel_abundance, paste0(gdrive,"/KelmanProject/Data/bos_transect_relabundance.csv"), row.names = T)
   # transect level CWM, annually
   write.csv(bos_cwm, paste0(gdrive,"/KelmanProject/Data/bos_transect_CWM.csv"), row.names = F)
 }
