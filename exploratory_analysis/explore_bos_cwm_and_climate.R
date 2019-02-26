@@ -33,8 +33,8 @@ for(l in libs){
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-#gdrive <- "../../Google\ Drive" #ctw path
+#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+gdrive <- "../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 #read in datasets
@@ -131,14 +131,14 @@ overlap <- subset(spp_lookup, JL_Code %in% trait_spp & OSMP_Code.clean %in% abun
 # first aggregate cover data, depending on if poolin spp abundances across transects or not
 if(pool_CWM){
   # aggregate cover by spp by year across all transects
-  cov_dat <- subset(bos_dat, transect_ID %in% transects & Year %in% yrs) %>%
+  cov_dat <- subset(bos_dat, transect_ID %in% transects & Year %in% yrs & Lifeform != "Ground cover") %>%
     group_by(Year, OSMP_Code.clean) %>%
     summarize(cover = sum(Cov_freq_val)) %>% # sum all hits per species per transect per year
     ungroup() %>% # remove grouping
     mutate(sitekey = Year) # sitekey for abundance matrix rownames will be year only
 }else{
   # aggregate cover by spp by year *by transect*
-  cov_dat <- subset(bos_dat, transect_ID %in% transects & Year %in% yrs) %>%
+  cov_dat <- subset(bos_dat, transect_ID %in% transects & Year %in% yrs & Lifeform != "Ground cover") %>%
     group_by(transect_ID, Year, OSMP_Code.clean) %>%
     summarize(cover = sum(Cov_freq_val)) %>% # sum all hits per species per transect per year
     ungroup() %>% # remove grouping
@@ -201,6 +201,13 @@ if(pool_CWM==FALSE){
 # re-order columns (transect_ID alphabetically comes between sitekey and Year so this line will always work)
 bos_cwm <- dplyr::select(bos_cwm, sitekey:Year, traits)
 
+
+# write out bos_cwm data frames for use in modeling
+# ** uncomment which code line you want depending on whether you're running pooled or tranect-level CWM
+# pooled CWMs, annually
+write.csv(bos_cwm, "modeling/bos_pooled_CWM.csv", row.names = F)
+# tranect level CWM, annually
+write.csv(bos_cwm, "modeling/bos_transect_CWM.csv", row.names = F)
 
 
 ##########################################
