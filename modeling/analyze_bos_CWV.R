@@ -21,16 +21,18 @@ source("traitMoments.test.R")
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-#gdrive <- "../Users/emilykelman/Google\ Drive" #emily's path
-gdrive <- "../../../Google\ Drive" #ctw path
+GDrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+#gdrive <- "../../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 #set pathway to data folder on Google Drive
-datapath <- paste0(gdrive, "/KelmanProject/Data/")
+datapath <- paste0(GDrive, "/KelmanProject/Data/")
 
 # read in desired abundance matrix and functional traits data frame
 comm <- read.csv(paste0(datapath, "bos_pooled_relabundance.csv"))
 traits <- read.csv(paste0(datapath, "fxnl_trait_community_df.csv"))
+clim_dat <- read.csv(paste0(GDrive, "/KelmanProject/Data/boulder_climate.csv"))
+clim_dat <- clim_dat[c(1:23, 25, 26), ]
 
 
 # -- PREP DATA FOR CWV FUNCTION -----
@@ -57,5 +59,21 @@ summary(colnames(comm) == rownames(traits)) # should be all true
 # -- CALCULATE COMMUNITY WEIGHTED VARIANCE -----
 # specify which trait you want to run
 # could store each trait CWV in its own data frame object? (i.e repeat this line x times, with object name something like rmr_cwv, sla_cwv, etc.)
-bos_cwv <- null.mom(comm, "RMR", df = traits, nreps = 100) #lets try 100 reps (?), got similar values with 200 reps and 100 is faster
+bos_RMRcwv <- null.mom(comm, "RMR", df = traits, nreps = 100) #lets try 100 reps (?), got similar values with 200 reps and 100 is faster
+bos_RDMCcwv <- null.mom(comm, "RDMC", df = traits, nreps = 100)
+bos_SLAcwv <- null.mom(comm, "SLA", df = traits, nreps = 100)
+bos_seedmass_cwv <- null.mom(comm, "seed_mass", df = traits, nreps = 100)
+bos_height_cwv <- null.mom(comm, "final_height_cm", df = traits, nreps = 100)
 
+### Combine all CWV columns into a single dataframe
+CWV <- cbind(bos_seedmass_cwv$obs.cwv, bos_RMRcwv$obs.cwv, bos_RDMCcwv$obs.cwv, bos_SLAcwv$obs.cwv, bos_height_cwv$obs.cwv)
+CWV <- data.frame(CWV)
+
+
+CWV_climate_merge <- cbind(CWV, clim_dat$spei_12, clim_dat$year)
+
+### Optional - set column names and rownames
+colnames(CWV_climate_merge) <- c("seedmass", "RMR", "RDMC", "SLA", "height", "spei_12", "year")
+
+#export CWV as a csv
+write.csv(CWV_climate_merge, paste0(gdrive,"/KelmanProject/Data/CWV_climate_merge.csv"), row.names = T)
