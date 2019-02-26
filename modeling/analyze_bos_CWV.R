@@ -24,6 +24,7 @@ source("traitMoments.test.R")
 #gdrive <- "../Users/emilykelman/Google\ Drive" #emily's path
 gdrive <- "../../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
+
 #set pathway to data folder on Google Drive
 datapath <- paste0(gdrive, "/KelmanProject/Data/")
 
@@ -31,13 +32,14 @@ datapath <- paste0(gdrive, "/KelmanProject/Data/")
 comm <- read.csv(paste0(datapath, "bos_pooled_relabundance.csv"))
 traits <- read.csv(paste0(datapath, "fxnl_trait_community_df.csv"))
 
+
+# -- PREP DATA FOR CWV FUNCTION -----
 # prep community abundance and traits df for community weighted variance
 # check both
 str(comm) # X = rownames
 str(traits) # X = rownames
-# turn comm back into matrix with sites as rownames
+# **keep comm as data frame because null.mom function uses names() instead of colnames() on matrix and names will return null for matrix
 rownames(comm) <- comm$X
-comm <- as.matrix(comm)
 comm <- comm[,-1] # remove first column x
 # store spp in case want
 comm_spp <- colnames(comm)
@@ -48,5 +50,12 @@ traits <- traits[,-1] # remove first column x
 study_traits <- colnames(traits)
 study_traits
 
-bos_cwv <- null.mom(comm, "RMR", df = traits, nreps = 9999)
+# check rownames in fxnl dt = colnames in spp matrix
+summary(colnames(comm) == rownames(traits)) # should be all true
+
+
+# -- CALCULATE COMMUNITY WEIGHTED VARIANCE -----
+# specify which trait you want to run
+# could store each trait CWV in its own data frame object? (i.e repeat this line x times, with object name something like rmr_cwv, sla_cwv, etc.)
+bos_cwv <- null.mom(comm, "RMR", df = traits, nreps = 100) #lets try 100 reps (?), got similar values with 200 reps and 100 is faster
 
