@@ -4,7 +4,13 @@
 #' date: "Feb 25 2019"
 #' output: github_document
 #' ---
-#'  Load libraries and read in data
+#' script purpose: feed in CWM and CWV outputs to create figures and models for analyses 
+
+#' SETUP 
+rm(list=ls()) # start with clean environment
+options(stringsAsFactors = FALSE) #character variables never factor by default 
+
+#'  Load libraries 
 #+ results=FALSE, message=FALSE, warning=FALSE 
 library(tidyverse)
 library(ggplot2)
@@ -15,6 +21,7 @@ gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
 #gdrive <- "../../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
+#'read in data
 CWV <- read.csv(paste0(gdrive, "/KelmanProject/Data/CWV_climate_merge.csv"))
 CWM_regressions <- read.csv(paste0(gdrive, "/KelmanProject/Data/CWM_for_regressions.csv"))
 CWM_figures <- read.csv(paste0(gdrive, "/KelmanProject/Data/CWM_for_figures.csv"))
