@@ -33,8 +33,8 @@ for(l in libs){
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-gdrive <- "../../../Google\ Drive" #ctw path
+gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+#gdrive <- "../../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 #read in datasets
@@ -104,7 +104,7 @@ yrs <- c(1991:2016) # yrs in dataset range 1991-2016
 
 # specify whether want to do individual transect CWM (pool_CWM = FALSE) or "regional" pooled community CWM (pool_CWM = TRUE)
 # if pooled, will sum spp abundances across all transects, by year, before creating abundance matrix
-pool_CWM <- TRUE
+pool_CWM <- FALSE
 
 # specify vector of desired traits
 traits <- colnames(trait_dat)[c(7,10,12:14,17,18,35)] # this will be only line to modify, everything below here generic
@@ -227,10 +227,15 @@ write.csv(fxnl_df, paste0(gdrive,"/KelmanProject/Data/fxnl_trait_community_df.cs
 # can visualize relationship between bos CWM and environment.. CWM to total annual cover.. whatever you choose..
 #wide form for creating linear regression
 CWM_climate_merged_W <- left_join(bos_cwm, clim_dat[c("year", climvars)],  by=c("Year"="year")) 
+#write csv
+write.csv(CWM_climate_merged_W, paste0(gdrive,"/KelmanProject/Data/CWM_for_regressions.csv"), row.names = T)
 
 #long form for creating figures 
 CWM_climate_merged_L <- left_join(bos_cwm, clim_dat[c("year", climvars)],  by=c("Year"="year"))%>%
   gather( key = "trait_name", value, traits, climvars)
+
+#write csv
+write.csv(CWM_climate_merged_L, paste0(gdrive,"/KelmanProject/Data/CWM_for_figures.csv"), row.names = T)
 
 #=====TRANSECT LEVEL CWM FIGURES AND LM=====
 
