@@ -112,7 +112,6 @@ for(i in problem_spp$OSMP_Code.corrected[grep(" sp$", problem_spp$OSMP_Code.corr
 # manual edits
 problem_spp$OSMP_Code.corrected[problem_spp$OSMP_Code == "meloft"] <- "meloff"
 problem_spp$OSMP_Code.corrected[problem_spp$OSMP_Code == "junarc"] <- "junarca"
-#problem_spp$OSMPSciName.corrected[problem_spp$OSMP_Code == "carnutm"] <- "Calochortus nuttallii"
 problem_spp$OSMPSciName.corrected[problem_spp$OSMP_Code == "phyhedc"] <- "Physalis hederifolia var. comata"
 
 # resort by clean vars
@@ -238,7 +237,7 @@ missing_recs <- tgsna_descrip[missing_descrip,]
 missing_recs <- subset(missing_recs,!Lifeform %in% "Ground cover")
 
 # manual edits..
-forbs <- c("Anten|Clayt|Cymo|Gaill|Oeno|Oroban|Physali")
+forbs <- c("Anten|Clayt|Cymo|Gaill|Oeno|Oroban|Physali|Lyco")
 perenn <- c("Anten|Cymo|Lyco")
 native <- c("Anten|Gaill|Lyco|Cymo|Oen|Physal|") #there is a non-native Lycopus europaeus USDA plants, but only documents in eastern US + BC (guessing needs more temperate climate)
 missing_recs$Lifeform[grepl(forbs, missing_recs$shortSciName)] <- "Forb"
@@ -280,6 +279,8 @@ summary(tgsna_descrip$OSMP_Code.clean %in% osmp_changes$OSMP_Code) #3 are..
 summary(unique(cover_dat$OSMPSciName.clean) %in% osmp_changes$OSMPSciName)
 tgsna_descrip$OSMP_Code.clean[tgsna_descrip$OSMP_Code.clean %in% osmp_changes$OSMP_Code] #3 present, ctw reviewed, is fine (all "sp" things)
 tgsna_descrip$OSMPSciName.clean[tgsna_descrip$OSMPSciName.clean %in% osmp_changes$OSMPSciName] #2 present, ctw reviewed and is fine (juncus articus -- name was correct, code not; Virgulus sp (fine))
+summary(is.na(tgsna_descrip))
+tgsna_descrip[is.na(tgsna_descrip$Family),] # all unknowns or ground cover, okay
 #tgsna descrip clean!
 
 
@@ -369,11 +370,13 @@ summary(is.na(spp_lookup)) #expect 1 bc tall oatgrass not in BOS dataset
 cover_out <- dplyr::select(cover_dat, Project:shortSciName, OSMP_Code.clean:Frst_hit) %>%
   #join descriptive info
   left_join(tgsna_descrip)
-
-
+# check NAs once more
+summary(is.na(cover_out))
+unique(cover_out$OSMP_Code.clean[is.na(cover_out$LifeHistory)]) #only ground cover
+unique(cover_out$OSMP_Code.clean[is.na(cover_out$Family)]) #only ground cover and unknowns
 
 # -- FINISHING -----
 # write out cleaned cover dat
-write.csv(cover_out, paste0(datapath, "tgsna_monitoring_19962016_clean.csv"), row.names = F)
+write.csv(cover_out, paste0(datapath, "tgsna_monitoring_19912016_clean.csv"), row.names = F)
 # write out lookup table
 write.csv(spp_lookup, paste0(datapath, "tgsna_trait_spp_lookup.csv"), row.names = F)
