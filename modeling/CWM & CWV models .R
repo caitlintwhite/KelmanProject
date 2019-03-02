@@ -12,19 +12,22 @@ options(stringsAsFactors = FALSE) #character variables never factor by default
 
 #'  Load libraries 
 #+ results=FALSE, message=FALSE, warning=FALSE 
-library(tidyverse)
-library(ggplot2)
+library(tidyverse) #tidyverse has ggplot2, no need to load separately
+
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-#gdrive <- "../../../Google\ Drive" #ctw path
+#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+gdrive <- "/Users/serahsierra/Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 #'read in data
 CWV <- read.csv(paste0(gdrive, "/KelmanProject/Data/CWV_climate_merge.csv"))
-CWM_regressions <- read.csv(paste0(gdrive, "/KelmanProject/Data/CWM_for_regressions.csv"))
-CWM_figures <- read.csv(paste0(gdrive, "/KelmanProject/Data/CWM_for_figures.csv"))
+tranCWM_regressions <- read.csv(paste0(gdrive, "/KelmanProject/Data/transectCWM_for_regressions.csv"))
+tranCWM_figures <- read.csv(paste0(gdrive, "/KelmanProject/Data/transectCWM_for_figures.csv"))
+poolCWM_regressions <- read.csv(paste0(gdrive, "/KelmanProject/Data/pooledCWM_for_figures.csv"))
+poolCWM_figures <- read.csv(paste0(gdrive, "/KelmanProject/Data/pooledCWM_for_figures.csv"))
+clim_dat <- read.csv(paste0(gdrive, "/KelmanProject/Data/boulder_climate.csv"))
 
 #'=====create CWV figures and run linear regressions (current)======
 #'
@@ -69,8 +72,14 @@ summary(CWV_RMR_spei_LM)
 #'fig 2: lagged spei_12
 
 #issue: trying to figure out how to show spei_12 on x-axis 
-fig1 <- ggplot(subset( CWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), mapping = aes(x=trait_name %in% "spei_12", y="value"))+
-  geom_point(aes(col = transect_ID), size = 0.5)+
+# **solution: need to have climate data in their own column if want to use on the x-axis, so just merge climate data with long-form trait value
+# ** it's okay that climate data are both in the trait_name column, and in their own column. 
+# ** it's more columns in the data frame, but also makes the data frame flexible so you can plot however you like
+tranCWM_figures <- left_join(tranCWM_figures, clim_dat, by = c("Year" = "year"))
+
+fig1 <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
+               mapping = aes(x=spei_12, y=value))+
+  geom_point(aes(col = transect_ID.clean), size = 0.5)+
   facet_grid(trait_name~., scales = "free_y")
 
 fig1
