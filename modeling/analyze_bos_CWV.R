@@ -22,8 +22,8 @@ source("traitMoments.test.R")
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
 GDrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-#gdrive <- "../../../Google\ Drive" #ctw path
-#gdrive <- "" #julie's path
+#GDrive <- "/Users/serahsierra/Google\ Drive" #ctw path
+#GDrive <- "" #julie's path
 
 #set pathway to data folder on Google Drive
 datapath <- paste0(GDrive, "/KelmanProject/Data/")
@@ -32,7 +32,7 @@ datapath <- paste0(GDrive, "/KelmanProject/Data/")
 comm <- read.csv(paste0(datapath, "bos_pooled_relabundance.csv"))
 traits <- read.csv(paste0(datapath, "fxnl_trait_community_df.csv"))
 clim_dat <- read.csv(paste0(GDrive, "/KelmanProject/Data/boulder_climate.csv"))
-clim_dat <- clim_dat[c(1:23, 25, 26), ]
+#clim_dat <- clim_dat[c(1:23, 25, 26), ] # <-- EK fix here bc more variables added, so want to check this code is still grabbing the ones you want
 
 
 # -- PREP DATA FOR CWV FUNCTION -----
@@ -42,13 +42,13 @@ str(comm) # X = rownames
 str(traits) # X = rownames
 # **keep comm as data frame because null.mom function uses names() instead of colnames() on matrix and names will return null for matrix
 rownames(comm) <- comm$X
-comm <- comm[,-1] # remove first column x
+comm <- comm[!colnames(comm) %in% "X"] # remove first column x
 # store spp in case want
 comm_spp <- colnames(comm)
 
 # turn traits back into data frame with spp as rownames
 rownames(traits) <- traits$X
-traits <- traits[,-1] # remove first column x
+traits <- traits[!colnames(traits) %in% "X"] # remove first column x
 study_traits <- colnames(traits)
 study_traits
 
@@ -68,12 +68,13 @@ bos_height_cwv <- null.mom(comm, "final_height_cm", df = traits, nreps = 100)
 ### Combine all CWV columns into a single dataframe
 CWV <- cbind(bos_seedmass_cwv$obs.cwv, bos_RMRcwv$obs.cwv, bos_RDMCcwv$obs.cwv, bos_SLAcwv$obs.cwv, bos_height_cwv$obs.cwv)
 CWV <- data.frame(CWV)
+### set column names according to cwv output order
+colnames(CWV) <- c("seedmass", "RMR", "RDMC", "SLA", "height")
+# add year as common field to use in joining climate data
+CWV$year <- rownames(bos_height_cwv)
 
+CWV_climate_merge <- merge(CWV, clim_dat[c("year", "spei_12")])
 
-CWV_climate_merge <- cbind(CWV, clim_dat$spei_12, clim_dat$year)
-
-### Optional - set column names and rownames
-colnames(CWV_climate_merge) <- c("seedmass", "RMR", "RDMC", "SLA", "height", "spei_12", "year")
 
 #export CWV as a csv
-write.csv(CWV_climate_merge, paste0(gdrive,"/KelmanProject/Data/CWV_climate_merge.csv"), row.names = T)
+write.csv(CWV_climate_merge, paste0(GDrive,"/KelmanProject/Data/CWV_climate_merge.csv"), row.names = F)
