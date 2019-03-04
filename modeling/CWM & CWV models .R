@@ -43,7 +43,7 @@ CWV$lagged_spei12 <- CWV$spei_lag
 
 #'create long form CWV DF for creating figures
 #'
-CWV_figures <- CWV %>% gather("trait_name", value, 2:7)
+CWV_figures <- CWV %>% gather("trait_name", value, 2:6)
 
 #'=====create CWV figures (current and lagged)======
 #'
@@ -53,8 +53,22 @@ CWV_figures <- CWV %>% gather("trait_name", value, 2:7)
 #'fig 2: variation in trait values (CWV) in relation to lagged spei_12 (pooled data)
 #'  
 #plot fig 1: panel plot of CWV of traits and current spei_12
-#'
-#need to re organize or create CWV for figures DF to put traits in same column 
+current_CWV_spei_panel<- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")), 
+mapping = aes(x=spei_12, y=value))+
+  geom_point(size = 0.75)+
+  geom_smooth(method=lm)+
+  facet_grid(trait_name~., scales = "free_y")
+
+current_CWV_spei_panel
+
+#plot fig 2: panel plot of CWV of traits and lagged spei_12
+lag_CWV_spei_panel <- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")),
+   mapping = aes(x=spei_lag, y=value))+
+  geom_point(size = 0.75)+
+  geom_smooth(method=lm)+
+  facet_grid(trait_name~., scales = "free_y")
+  
+lag_CWV_spei_panel            
 
 #'====exploratory CWV figures======
 #plot CWV RMR and spei_12
