@@ -49,6 +49,14 @@ add to DF
 ``` r
 tranCWM_figures$lagged_spei12 <- CWV$spei_lag
 CWV$lagged_spei12 <- CWV$spei_lag
+#error
+#tranCWM_regressions$lagged_spei12 <-CWV$spei_lag
+```
+
+create long form CWV DF for creating figures
+
+``` r
+CWV_figures <- CWV %>% gather("trait_name", value, 2:6)
 ```
 
 =====create CWV figures (current and lagged)======
@@ -59,11 +67,33 @@ fig 2: variation in trait values (CWV) in relation to lagged spei\_12 (pooled da
 
 ``` r
 #plot fig 1: panel plot of CWV of traits and current spei_12
+current_CWV_spei_panel<- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")), 
+mapping = aes(x=spei_12, y=value))+
+  geom_point(size = 0.75)+
+  geom_smooth(method=lm)+
+  facet_grid(trait_name~., scales = "free_y")
+
+current_CWV_spei_panel
 ```
 
+![](CWM___CWV_models__files/figure-markdown_github/unnamed-chunk-7-1.png)
+
 ``` r
-#need to re organize or create CWV for figures DF to put traits in same column 
+#plot fig 2: panel plot of CWV of traits and lagged spei_12
+lag_CWV_spei_panel <- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")),
+   mapping = aes(x=spei_lag, y=value))+
+  geom_point(size = 0.75)+
+  geom_smooth(method=lm)+
+  facet_grid(trait_name~., scales = "free_y")
+  
+lag_CWV_spei_panel            
 ```
+
+    ## Warning: Removed 5 rows containing non-finite values (stat_smooth).
+
+    ## Warning: Removed 5 rows containing missing values (geom_point).
+
+![](CWM___CWV_models__files/figure-markdown_github/unnamed-chunk-7-2.png)
 
 ====exploratory CWV figures======
 
@@ -386,35 +416,6 @@ current_tranCWM_spei_panel
 
 ![](CWM___CWV_models__files/figure-markdown_github/unnamed-chunk-11-1.png)
 
-run linear regression with multiple trait variables (current)
-
-pvalue .57 r^2 -.003
-
-``` r
-current_tranCWM_spei_LM <- lm(formula = SLA + final_height_cm + seed_mass + RDMC + RMR ~ spei_12, data=tranCWM_regressions)
-summary(current_tranCWM_spei_LM)
-```
-
-    ## 
-    ## Call:
-    ## lm(formula = SLA + final_height_cm + seed_mass + RDMC + RMR ~ 
-    ##     spei_12, data = tranCWM_regressions)
-    ## 
-    ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ## -86.659 -14.169   3.514  17.031  87.590 
-    ## 
-    ## Coefficients:
-    ##             Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)  398.755      1.844 216.289   <2e-16 ***
-    ## spei_12       -1.141      2.034  -0.561    0.576    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## Residual standard error: 27.34 on 218 degrees of freedom
-    ## Multiple R-squared:  0.00144,    Adjusted R-squared:  -0.00314 
-    ## F-statistic: 0.3144 on 1 and 218 DF,  p-value: 0.5756
-
 plot fig 4: panel plot of CWM traits at transect level with lagged spei\_12 on x
 
 ``` r
@@ -422,7 +423,8 @@ lagged_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("fi
                                     mapping = aes(x=lagged_spei12, y=value))+
   geom_point(aes(col = transect_ID.clean), size = 0.75)+
   geom_smooth(method=lm)+
-  facet_grid(trait_name~., scales = "free_y")
+  facet_grid(trait_name~., scales = "free_y")+
+  ggtitle("relationship between CWM by transect and lagged spei_12")
 
 lagged_tranCWM_spei_panel
 ```
@@ -431,15 +433,143 @@ lagged_tranCWM_spei_panel
 
     ## Warning: Removed 45 rows containing missing values (geom_point).
 
-![](CWM___CWV_models__files/figure-markdown_github/unnamed-chunk-13-1.png)
+![](CWM___CWV_models__files/figure-markdown_github/unnamed-chunk-12-1.png)
 
-run linear regression with multiple trait variables (lagged)
-
-``` r
-#need to add lagged spei_12 to the tranCWM regressions DF 
-```
+====run linear regressions for CWM traits and spei\_12 (current)=====
 
 ``` r
-#lagged_tranCWM_spei_LM <- lm(formula = SLA + final_height_cm + seed_mass + RDMC + RMR ~ lagged_spei12, data=tranCWM_regressions)
-#summary(lagged_tranCWM_spei_LM)
+#LM for CWM RMR and spei
+#p value .5 r^2 -.002
+#not significant
+current_tranCWM_RMR_spei_LM <- lm(formula = RMR ~ spei_12, data = tranCWM_regressions)
+summary(current_tranCWM_RMR_spei_LM)
 ```
+
+    ## 
+    ## Call:
+    ## lm(formula = RMR ~ spei_12, data = tranCWM_regressions)
+    ## 
+    ## Residuals:
+    ##       Min        1Q    Median        3Q       Max 
+    ## -0.080372 -0.029417 -0.002573  0.030491  0.094366 
+    ## 
+    ## Coefficients:
+    ##              Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)  0.350981   0.002660 131.930   <2e-16 ***
+    ## spei_12     -0.001931   0.002935  -0.658    0.511    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.03946 on 218 degrees of freedom
+    ## Multiple R-squared:  0.001982,   Adjusted R-squared:  -0.002596 
+    ## F-statistic: 0.433 on 1 and 218 DF,  p-value: 0.5112
+
+``` r
+#LM for CWM height and spei_12
+#p value .037 r^2 .015
+#significant!
+current_tranCWM_height_spei_LM <- lm(formula = final_height_cm ~ spei_12, data = tranCWM_regressions)
+summary(current_tranCWM_height_spei_LM)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = final_height_cm ~ spei_12, data = tranCWM_regressions)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -5.1707 -2.0835  0.0413  1.9340  6.9291 
+    ## 
+    ## Coefficients:
+    ##             Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)  16.7952     0.1711  98.176   <2e-16 ***
+    ## spei_12       0.3944     0.1887   2.089   0.0378 *  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 2.537 on 218 degrees of freedom
+    ## Multiple R-squared:  0.01963,    Adjusted R-squared:  0.01514 
+    ## F-statistic: 4.366 on 1 and 218 DF,  p-value: 0.03783
+
+``` r
+#LM for CWM RDMC and spei_12
+#p vaule .35 r^2 -.0006
+#not significant
+current_tranCWM_RDMC_spei_LM <- lm(formula = RDMC ~ spei_12, data = tranCWM_regressions)
+summary(current_tranCWM_RDMC_spei_LM)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = RDMC ~ spei_12, data = tranCWM_regressions)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -2.3979 -0.7465 -0.1114  0.7243  2.7754 
+    ## 
+    ## Coefficients:
+    ##             Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept) 12.77403    0.06590 193.842   <2e-16 ***
+    ## spei_12      0.06775    0.07271   0.932    0.352    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.9774 on 218 degrees of freedom
+    ## Multiple R-squared:  0.003967,   Adjusted R-squared:  -0.0006018 
+    ## F-statistic: 0.8683 on 1 and 218 DF,  p-value: 0.3525
+
+``` r
+#LM for CWM seedmass and spei_12
+#p value .66 r^2 -.003
+#not significant
+current_tranCWM_seedmass_spei_LM <-lm(formula = seed_mass ~ spei_12, data = tranCWM_regressions)
+summary(current_tranCWM_seedmass_spei_LM)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = seed_mass ~ spei_12, data = tranCWM_regressions)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -1.3340 -0.6081 -0.1140  0.3876  2.7477 
+    ## 
+    ## Coefficients:
+    ##             Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)  1.64226    0.05577  29.447   <2e-16 ***
+    ## spei_12      0.02681    0.06153   0.436    0.664    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.8272 on 218 degrees of freedom
+    ## Multiple R-squared:  0.0008699,  Adjusted R-squared:  -0.003713 
+    ## F-statistic: 0.1898 on 1 and 218 DF,  p-value: 0.6635
+
+``` r
+#LM for CWM Sla and spei_12
+# pvalue .43 r^2 -.0017
+#not significant
+current_tranCWM_SLA_spei_LM <- lm(formula = SLA ~spei_12, data = tranCWM_regressions)
+summary(current_tranCWM_SLA_spei_LM)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = SLA ~ spei_12, data = tranCWM_regressions)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -90.004 -16.263   3.094  17.899  91.949 
+    ## 
+    ## Coefficients:
+    ##             Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)  367.193      1.874 195.897   <2e-16 ***
+    ## spei_12       -1.628      2.068  -0.787    0.432    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 27.8 on 218 degrees of freedom
+    ## Multiple R-squared:  0.002833,   Adjusted R-squared:  -0.001741 
+    ## F-statistic: 0.6194 on 1 and 218 DF,  p-value: 0.4321
+
+====run linear regressions for CWM traits and spei\_12 (lagged)=====
