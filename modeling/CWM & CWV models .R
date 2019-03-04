@@ -29,6 +29,7 @@ poolCWM_regressions <- read.csv(paste0(gdrive, "/KelmanProject/Data/pooledCWM_fo
 poolCWM_figures <- read.csv(paste0(gdrive, "/KelmanProject/Data/pooledCWM_for_figures.csv"))
 clim_dat <- read.csv(paste0(gdrive, "/KelmanProject/Data/boulder_climate.csv"))
 
+
 #'add lagged spei_12 to tranCWM_figures DF & CWV DF
 #'
 #'create vector
@@ -39,6 +40,10 @@ tranCWM_figures$lagged_spei12 <- CWV$spei_lag
 CWV$lagged_spei12 <- CWV$spei_lag
 #error
 #tranCWM_regressions$lagged_spei12 <-CWV$spei_lag
+
+#'create long form CWV DF for creating figures
+#'
+CWV_figures <- CWV %>% gather("trait_name", value, 2:7)
 
 #'=====create CWV figures (current and lagged)======
 #'
@@ -194,8 +199,5 @@ summary(current_tranCWM_SLA_spei_LM)
 
 
 
-#'
-#
-#'
-#
 
+  
