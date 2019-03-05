@@ -6,22 +6,30 @@
 #' ---
 #' script purpose: feed in CWM and CWV outputs to create figures and models for analyses 
 #'
-#' SETUP 
+
+#+ r setup, echo = F, message =FALSE, warning = F
+# adjust global knit document setting:
+# #generally: don't show code, suppress messages and supress warnings
+#  SETUP 
+# where you want to show the code, you'll want to name that chunk of code differently and in the #+ r line set echo = T
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
 rm(list=ls()) # start with clean environment
 options(stringsAsFactors = FALSE) #character variables never factor by default 
+         
 
-#'  Load libraries 
-#+ results=FALSE, message=FALSE, warning=FALSE 
+#  Load libraries 
 library(tidyverse) #tidyverse has ggplot2, no need to load separately
+library(cowplot)
+options(theme_set(theme_bw())) # set default ggplot theme as theme_bw
 
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-#gdrive <- "/Users/serahsierra/Google\ Drive" #ctw path
+#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+gdrive <- "/Users/serahsierra/Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
-#'read in data
+#read in data
 CWV <- read.csv(paste0(gdrive, "/KelmanProject/Data/CWV_climate_merge.csv"))
 tranCWM_regressions <- read.csv(paste0(gdrive, "/KelmanProject/Data/transectCWM_for_regressions.csv"))
 tranCWM_figures <- read.csv(paste0(gdrive, "/KelmanProject/Data/transectCWM_for_figures.csv"))
@@ -29,13 +37,13 @@ poolCWM_regressions <- read.csv(paste0(gdrive, "/KelmanProject/Data/pooledCWM_fo
 poolCWM_figures <- read.csv(paste0(gdrive, "/KelmanProject/Data/pooledCWM_for_figures.csv"))
 clim_dat <- read.csv(paste0(gdrive, "/KelmanProject/Data/boulder_climate.csv"))
 
-#'#issue: trying to figure out how to show spei_12 on x-axis 
+##issue: trying to figure out how to show spei_12 on x-axis 
 # **solution: need to have climate data in their own column if want to use on the x-axis, so just merge climate data with long-form trait value
 # ** it's okay that climate data are both in the trait_name column, and in their own column. 
 # ** it's more columns in the data frame, but also makes the data frame flexible so you can plot however you like
 tranCWM_figures <- left_join(tranCWM_figures, clim_dat, by = c("Year" = "year"))
-#'
-#'create vector for spei_lag and add to tranCWM_regressions, tranCWM_figures, & CWV
+#
+#create vector for spei_lag and add to tranCWM_regressions, tranCWM_figures, & CWV
 CWV <-CWV%>% 
   mutate(lagged_spei12=lag(spei_12))
 
@@ -46,36 +54,46 @@ tranCWM_figures <- tranCWM_figures%>%
 tranCWM_regressions <-tranCWM_regressions%>%
   group_by(transect_ID.clean)%>%
   mutate(lagged_spei12=lag(spei_12))
-#'create long form CWV DF for creating figures
-#'
+#create long form CWV DF for creating figures
+#
 CWV_figures <- CWV %>% gather("trait_name", value, 2:6)
 
 #'=====create CWV figures (current and lagged)======
-#'
-#'
-#'fig 1: variation in trait values (CWV) in relation to current spei_12 (pooled data)
-#'
-#'fig 2: variation in trait values (CWV) in relation to lagged spei_12 (pooled data)
-#'  
+#
+#
+#fig 1: variation in trait values (CWV) in relation to current spei_12 (pooled data)
+#
+#fig 2: variation in trait values (CWV) in relation to lagged spei_12 (pooled data)
+#  
+#+ r side by side plot of CWV traits by current spei_12 and CWV by lagged spei_12, fig.width = 6.5, fig.height = 7 
 #plot fig 1: panel plot of CWV of traits and current spei_12
 current_CWV_spei_panel<- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")), 
 mapping = aes(x=spei_12, y=value))+
   geom_point(size = 0.75)+
   geom_smooth(method=lm)+
+  labs(y = "Functional trait Community Weighted Variance (CWV) value") +
   facet_grid(trait_name~., scales = "free_y")
 
-current_CWV_spei_panel
+#current_CWV_spei_panel
 
 #plot fig 2: panel plot of CWV of traits and lagged spei_12
 lag_CWV_spei_panel <- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")),
    mapping = aes(x=lagged_spei12, y=value))+
   geom_point(size = 0.75)+
   geom_smooth(method=lm)+
+  labs(y=NULL) +
   facet_grid(trait_name~., scales = "free_y")
   
-lag_CWV_spei_panel            
+#lag_CWV_spei_panel            
+
+# plot current and lagged spei panels side by side
+plot_grid(current_CWV_spei_panel, lag_CWV_spei_panel,
+          ncol = 2, 
+          align = "h",
+          rel_widths = c(1,0.95)) #make left hand side plot a little wider because it has the y-axis label
 
 #'====exploratory CWV figures======
+#+ r CWV RMR by current spei_12, fig.width = 4, fig.height = 4 
 #plot CWV RMR and spei_12
 CWV_RMR_spei_fig <- ggplot(CWV, mapping = aes(x=spei_12, y=RMR))+
   geom_point()+
@@ -108,7 +126,6 @@ summary(current_CWV_RDMC_spei_LM)
 current_CWV_seedmass_spei_LM <- lm(formula = seedmass ~ spei_12, data = CWV)
 summary(current_CWV_seedmass_spei_LM)
 
-#LM CWV SLA and spei_12
 #p value .42 r^2 -.014
 current_CWV_SLA_spei_LM <- lm(formula = SLA ~ spei_12, data = CWV)
 summary(current_CWV_SLA_spei_LM)
@@ -147,59 +164,81 @@ summary(lag_CWV_SLA_spei_LM)
 #'=====create CWM figures=====
 #'
 #'panel plot of CWMs, spei_12 on x, trait on y
-#'
-#'transect level
-#'
-#'fig 3: current spei_12
-#'
-#'fig 4: lagged spei_12
+#
+#transect level
+#
+#fig 3: current spei_12
+#
+#fig 4: lagged spei_12
 #'
 
 
-
-
+#+ r plot cwm traits global side by side for current and lagged spei_12, cwm traits-transects uncolored-by spei_12, fig.width = 6.5, fig.height = 7
 #plot fig 3: panel plot of CWM traits at transect level with current spei_12 on x. shows overall trend
 current_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
                                      mapping = aes( x=spei_12, y=value))+
   geom_point(size = 0.75)+
   geom_smooth(method=lm, se=FALSE)+
   facet_grid(trait_name~., scales = "free_y")+
-  ggtitle("Relationship between Transect level CWM and spei_12")
+  labs(y = "Functional trait Community Weighted Mean (CWM) value",
+       x = "12-month drought (SPEI)",
+    title = "Transect level CWM and spei_12") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 10),
+        axis.title = element_text(size = 10))
 
-current_tranCWM_spei_panel
+#current_tranCWM_spei_panel
 
+#panel plot CWM traits and lagged spei_12 across transects to observe global trends
+lagged_tranCWM_spei_panel_global <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
+                                           mapping = aes( x=lagged_spei12, y=value))+
+  geom_point( size = 0.75)+
+  geom_smooth(method=lm)+
+  facet_grid(trait_name~., scales = "free_y")+
+  labs(y = NULL,
+       x = "Previous 12-month drought (t-1 SPEI)",
+       title = "Transect level CWM and lagged spei_12") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 10),
+        axis.title = element_text(size = 10))
+
+#lagged_tranCWM_spei_panel_global
+
+# plot current and lagged spei panels side by side
+plot_grid(current_tranCWM_spei_panel, lagged_tranCWM_spei_panel_global,
+         ncol = 2, 
+         align = "h",
+         rel_widths = c(1,0.95)) #make left hand side plot a little wider because it has the y-axis label
+
+#+ transect CWM by drought vars with all transects arrayed, fig.width = 10, fig.height = 9
 #plot CWM traits and current spei_12. Shows changes in mean value across transects
 current_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
                mapping = aes(col = transect_ID.clean, x=spei_12, y=value))+
   geom_point(aes(col = transect_ID.clean), size = 0.75)+
-  geom_smooth(method=lm, se=FALSE)+
+  geom_smooth(method=lm)+ #se = F
   facet_grid(trait_name~transect_ID.clean, scales = "free_y")+
-  ggtitle("Relationship between Transect level CWM and spei_12")
+  ggtitle("Relationship between Transect level CWM and spei_12") +
+  theme(legend.position = "none")
 
 current_tranCWM_spei_panel
 
-#'plot fig 4: panel plot of CWM traits at transect level with lagged spei_12 on x. shows different transects explicitly
+#'
+#+ r cwm traits-transect level by lagged spei_12, fig.width = 10, fig.height = 9
+#plot fig 4: panel plot of CWM traits at transect level with lagged spei_12 on x. shows different transects explicitly
 lagged_tranCWM_spei_panel<- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
                                     mapping = aes(col=transect_ID.clean, x=lagged_spei12, y=value))+
   geom_point( size = 0.75)+
   geom_smooth(method=lm)+
   facet_grid(trait_name~transect_ID.clean, scales = "free_y")+
-  ggtitle("relationship between CWM by transect and lagged spei_12")
+  ggtitle("relationship between CWM by transect and lagged spei_12") +
+  theme(legend.position = "none")
 
 lagged_tranCWM_spei_panel
 
 
-#panel plot CWM traits and lagged spei_12 across transects to observe global trends
-lagged_tranCWM_spei_panel_global <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
-                                    mapping = aes( x=lagged_spei12, y=value))+
-  geom_point( size = 0.75)+
-  geom_smooth(method=lm)+
-  facet_grid(trait_name~., scales = "free_y")+
-  ggtitle("relationship between CWM by transect and lagged spei_12")
-
-lagged_tranCWM_spei_panel_global
 
 
+#'
 #'====run linear regressions for CWM traits and spei_12 (current)=====
 #'
 #LM for CWM RMR and spei
@@ -278,14 +317,18 @@ summary(lagged_CWM_SLA_spei_LM)
 # -- COMPILE ALL LM RESULTS -----
 # 1) create vector of linear model objects in your global environment
 # list all objects in your global environment
-env_objects <- ls()
+env_objects <- unlist(ls())
 # grab the objects that are linear models
 ## this line iterates over env_objects and tests whether it is an lm objects or not, it returns TRUE or FALSE
-# lms_only <- unlist(sapply(env_objects, function(x) class(get(x)) == "lm"))
-# ## this line subsets the env_objects vector to keep only the positions where lms_only == TRUE
-# ## i.e. it pulls out the names of lm objects only
-# lm_objects <- env_objects[lms_only]
-lm_objects <- env_objects[grepl("_LM", env_objects)]
+lms_only <- unlist(sapply(env_objects, function(x) class(get(x)) == "lm"))
+# extract the names of elements in lms_only that are TRUE
+lm_objects <- names(lms_only[lms_only == TRUE])
+lm_objects <- lm_objects[lm_objects != "temp.lm"] # remove temp.lm (in for-loop below)
+
+# ** EK: if getting an error in lm_objects, uncomment the line of code here and use this instead to create lm_objects
+# subset env_object to those elements that have "_LM" in their name (i.e. all of your linear model objects above) 
+#lm_objects <- env_objects[grepl("_LM", env_objects)]
+
 
 # 2) # initiate empty data frames for lm results
 # to store overall model results
@@ -315,6 +358,7 @@ for(o in 1:length(lm_objects)){
                       data.frame(cbind(dataset, model, coeff.name, coeff.value, coeff.pval, CI.upper.bound, CI.lower.bound)))
 
   }
+  y = temp.lm$terms[[2]]
   # number of observations used in model (i.e. sample size)
   n = nrow(temp.lm$model)
   # overall model p-value
@@ -323,7 +367,7 @@ for(o in 1:length(lm_objects)){
   adj.r2 = summary(temp.lm)$adj.r.squared
   # compile overall model results data frame, adding in results for model isolated at top of for loop
   model_df <- rbind(model_df,
-                    data.frame(cbind(dataset, model, n, model.pval, adj.r2)))
+                    data.frame(cbind(dataset, model, y, n, model.pval, adj.r2)))
 }
 
 # 4) compile everything in a master results data frame
