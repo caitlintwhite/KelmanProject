@@ -280,10 +280,11 @@ summary(lagged_CWM_SLA_spei_LM)
 env_objects <- ls()
 # grab the objects that are linear models 
 ## this line iterates over env_objects and tests whether it is an lm objects or not, it returns TRUE or FALSE
-lms_only <- sapply(env_objects, function(x) class(get(x)) == "lm")
-## this line subsets the env_objects vector to keep only the positions where lms_only == TRUE
-## i.e. it pulls out the names of lm objects only
-lm_objects <- env_objects[lms_only]
+# lms_only <- unlist(sapply(env_objects, function(x) class(get(x)) == "lm"))
+# ## this line subsets the env_objects vector to keep only the positions where lms_only == TRUE
+# ## i.e. it pulls out the names of lm objects only
+# lm_objects <- env_objects[lms_only]
+lm_objects <- env_objects[grepl("_LM", env_objects)]
 
 # 2) # initiate empty data frames for lm results
 # to store overall model results
