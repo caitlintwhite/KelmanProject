@@ -33,8 +33,8 @@ for(l in libs){
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-gdrive <- "/Users/serahsierra/Google\ Drive" #ctw path
+gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+#gdrive <- "/Users/serahsierra/Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 #read in datasets
@@ -103,7 +103,7 @@ yrs <- c(1991:2016) # yrs in dataset range 1991-2016
 
 # specify whether want to do individual transect CWM (pool_CWM = FALSE) or "regional" pooled community CWM (pool_CWM = TRUE)
 # if pooled, will sum spp abundances across all transects, by year, before creating abundance matrix
-pool_CWM <- FALSE
+pool_CWM <- TRUE
 
 # specify vector of desired traits
 traits <- colnames(trait_dat)[c(7,10,12:14,17,18,35)] # this will be only line to modify, everything below here generic
@@ -257,11 +257,10 @@ if(pool_CWM){
   write.csv(tranCWM_climate_merged_L, paste0(gdrive,"/KelmanProject/Data/transectCWM_for_figures.csv"), row.names = F)
 }
 
-
 #=====TRANSECT LEVEL CWM FIGURES AND LM=====
 
 #create figure to look at LDMC and precip 
-area7_LDMC_precip_fig <- ggplot(tranCWM_climate_merged_W, mapping = aes(x=precip_5, y=LDMC))+
+area7_LDMC_precip_fig <- ggplot(tranCWM_climate_merged_L, mapping = aes(x=precip_5, y=LDMC))+
   geom_point(aes(col=transect_ID.clean))+
   geom_smooth(method = "lm", col ="black") +
   geom_smooth(aes(col=transect_ID.clean), method = "lm", se = F)

@@ -76,5 +76,7 @@ CWV$year <- rownames(bos_height_cwv)
 CWV_climate_merge <- merge(CWV, clim_dat[c("year", "spei_12")])
 
 
+
+
 #export CWV as a csv
 write.csv(CWV_climate_merge, paste0(GDrive,"/KelmanProject/Data/CWV_climate_merge.csv"), row.names = F)

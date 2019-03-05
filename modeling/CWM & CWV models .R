@@ -236,6 +236,7 @@ summary(current_tranCWM_seedmass_spei_LM)
 #not significant
 current_tranCWM_SLA_spei_LM <- lm(formula = SLA ~spei_12, data = tranCWM_regressions)
 summary(current_tranCWM_SLA_spei_LM)
+
 #'
 #'====run linear regressions for CWM traits and spei_12 (lagged)=====
 #'
@@ -257,7 +258,7 @@ summary(lagged_CWM_RMR_spei_LM)
 lagged_CWM_RDMC_spei_LM <-lm(formula=RDMC ~ lagged_spei12, data = tranCWM_regressions)
 summary(lagged_CWM_RDMC_spei_LM)
 
-plot(tranCWM_regressions$lagged_spei12,tranCWM_regressions$RDMC)
+#plot(tranCWM_regressions$lagged_spei12,tranCWM_regressions$RDMC)
 
 #LM of CWM seedmass and lagged spei_12
 #pvalue .86 r^2 -.004
@@ -274,62 +275,62 @@ summary(lagged_CWM_SLA_spei_LM)
 
 
 
-# -- COMPILE ALL LM RESULTS -----
-# 1) create vector of linear model objects in your global environment
-# list all objects in your global environment
-env_objects <- ls()
-# grab the objects that are linear models 
-## this line iterates over env_objects and tests whether it is an lm objects or not, it returns TRUE or FALSE
-# lms_only <- unlist(sapply(env_objects, function(x) class(get(x)) == "lm"))
-# ## this line subsets the env_objects vector to keep only the positions where lms_only == TRUE
-# ## i.e. it pulls out the names of lm objects only
-# lm_objects <- env_objects[lms_only]
-lm_objects <- env_objects[grepl("_LM", env_objects)]
-
-# 2) # initiate empty data frames for lm results
-# to store overall model results
-model_df <- data.frame()
-# to store coefficient results
-coeff_df <- data.frame()
-
-# 3) use a for-loop to grab model results in all models generated
-# a for-loop will run the code in between the curly brackets for every object in your lm_objects, one at a time
-for(o in 1:length(lm_objects)){
-  # isolate the lm of interest, store in  temporary model object
-  temp.lm  <- get(lm_objects[o])
-  model_call <- as.character((summary(temp.lm)[[1]]))
-  dataset = model_call[3]
-  model = model_call[2]
-  terms <- names(temp.lm$coefficients)
-  # iterate through each term in the linear model and grab results
-  for(t in 1:length(terms)){
-    # this inner-for loop grabs model results for individual terms 
-    coeff.name = terms[t]
-    coeff.value = temp.lm$coefficients[[t]]
-    CI.lower.bound = confint(temp.lm)[t]
-    CI.upper.bound = confint(temp.lm)[t+2]
-    coeff.pval = summary(temp.lm)[[4]][colnames(summary(temp.lm)[[4]]) == "Pr(>|t|)"][t]
-    # compile coefficient term results data frame, adding in results for term isolated at top of inner-for loop
-    coeff_df <- rbind(coeff_df, 
-                      data.frame(cbind(dataset, model, coeff.name, coeff.value, coeff.pval, CI.upper.bound, CI.lower.bound)))
-    
-  }
-  # number of observations used in model (i.e. sample size)
-  n = nrow(temp.lm$model)
-  # overall model p-value
-  model.pval = anova(temp.lm)$`Pr(>F)`[1]
-  # model adjusted r-squared
-  adj.r2 = summary(temp.lm)$adj.r.squared
-  # compile overall model results data frame, adding in results for model isolated at top of for loop
-  model_df <- rbind(model_df,
-                    data.frame(cbind(dataset, model, n, model.pval, adj.r2)))
-}
-
-# 4) compile everything in a master results data frame
-## overall model values will repeat with each coefficient term (because those terms are from the same model)
-master_lm_results <- merge(model_df, coeff_df)
-
-
-
-
-  
+# # -- COMPILE ALL LM RESULTS -----
+# # 1) create vector of linear model objects in your global environment
+# # list all objects in your global environment
+# env_objects <- ls()
+# # grab the objects that are linear models
+# ## this line iterates over env_objects and tests whether it is an lm objects or not, it returns TRUE or FALSE
+# # lms_only <- unlist(sapply(env_objects, function(x) class(get(x)) == "lm"))
+# # ## this line subsets the env_objects vector to keep only the positions where lms_only == TRUE
+# # ## i.e. it pulls out the names of lm objects only
+# # lm_objects <- env_objects[lms_only]
+# lm_objects <- env_objects[grepl("_LM", env_objects)]
+# 
+# # 2) # initiate empty data frames for lm results
+# # to store overall model results
+# model_df <- data.frame()
+# # to store coefficient results
+# coeff_df <- data.frame()
+# 
+# # 3) use a for-loop to grab model results in all models generated
+# # a for-loop will run the code in between the curly brackets for every object in your lm_objects, one at a time
+# for(o in 1:length(lm_objects)){
+#   # isolate the lm of interest, store in  temporary model object
+#   temp.lm  <- get(lm_objects[o])
+#   model_call <- as.character((summary(temp.lm)[[1]]))
+#   dataset = model_call[3]
+#   model = model_call[2]
+#   terms <- names(temp.lm$coefficients)
+#   # iterate through each term in the linear model and grab results
+#   for(t in 1:length(terms)){
+#     # this inner-for loop grabs model results for individual terms
+#     coeff.name = terms[t]
+#     coeff.value = temp.lm$coefficients[[t]]
+#     CI.lower.bound = confint(temp.lm)[t]
+#     CI.upper.bound = confint(temp.lm)[t+2]
+#     coeff.pval = summary(temp.lm)[[4]][colnames(summary(temp.lm)[[4]]) == "Pr(>|t|)"][t]
+#     # compile coefficient term results data frame, adding in results for term isolated at top of inner-for loop
+#     coeff_df <- rbind(coeff_df,
+#                       data.frame(cbind(dataset, model, coeff.name, coeff.value, coeff.pval, CI.upper.bound, CI.lower.bound)))
+# 
+#   }
+#   # number of observations used in model (i.e. sample size)
+#   n = nrow(temp.lm$model)
+#   # overall model p-value
+#   model.pval = anova(temp.lm)$`Pr(>F)`[1]
+#   # model adjusted r-squared
+#   adj.r2 = summary(temp.lm)$adj.r.squared
+#   # compile overall model results data frame, adding in results for model isolated at top of for loop
+#   model_df <- rbind(model_df,
+#                     data.frame(cbind(dataset, model, n, model.pval, adj.r2)))
+# }
+# 
+# # 4) compile everything in a master results data frame
+# ## overall model values will repeat with each coefficient term (because those terms are from the same model)
+# master_lm_results <- merge(model_df, coeff_df)
+# 
+# 
+# 
+# 
+# 
