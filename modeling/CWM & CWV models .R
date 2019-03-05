@@ -205,8 +205,13 @@ lagged_tranCWM_spei_panel_global
 #LM for CWM RMR and spei
 #p value .5 r^2 -.002
 #not significant
-current_tranCWM_RMR_spei_LM <- lm(formula = RMR ~ spei_12, data = tranCWM_regressions)
+current_tranCWM_RMR_spei_LM <- lm(formula = RMR ~ spei_12*transect_ID.clean, data = tranCWM_regressions)
 summary(current_tranCWM_RMR_spei_LM)
+
+current_tranCWM_RMR_spei_LM2 <- lm(formula = RMR ~ spei_12+transect_ID.clean, data = tranCWM_regressions)
+current_tranCWM_RMR_spei_LM3 <- lm(formula = RMR ~ spei_12, data = tranCWM_regressions)
+
+aov(current_tranCWM_RMR_spei_LM, current_tranCWM_RMR_spei_LM2)
 
 #LM for CWM height and spei_12
 #p value .037 r^2 .015
