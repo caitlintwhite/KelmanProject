@@ -29,15 +29,23 @@ poolCWM_regressions <- read.csv(paste0(gdrive, "/KelmanProject/Data/pooledCWM_fo
 poolCWM_figures <- read.csv(paste0(gdrive, "/KelmanProject/Data/pooledCWM_for_figures.csv"))
 clim_dat <- read.csv(paste0(gdrive, "/KelmanProject/Data/boulder_climate.csv"))
 
-#'
+#'#issue: trying to figure out how to show spei_12 on x-axis 
+# **solution: need to have climate data in their own column if want to use on the x-axis, so just merge climate data with long-form trait value
+# ** it's okay that climate data are both in the trait_name column, and in their own column. 
+# ** it's more columns in the data frame, but also makes the data frame flexible so you can plot however you like
+tranCWM_figures <- left_join(tranCWM_figures, clim_dat, by = c("Year" = "year"))
 #'
 #'create vector for spei_lag and add to tranCWM_regressions, tranCWM_figures, & CWV
-CWV$spei_lag <- lag(CWV$spei_12, k=1)
-tranCWM_regressions$spei_lag <- lag(tranCWM_regressions$spei_12, k=1)
-CWV$lagged_spei12 <- CWV$spei_lag
-tranCWM_figures$lagged_spei12 <- CWV$spei_lag
+CWV <-CWV%>% 
+  mutate(lagged_spei12=lag(spei_12))
 
+tranCWM_figures <- tranCWM_figures%>%
+  group_by(transect_ID.clean)%>%
+   mutate(lagged_spei12=lag(spei_12))
 
+tranCWM_regressions <-tranCWM_regressions%>%
+  group_by(transect_ID.clean)%>%
+  mutate(lagged_spei12=lag(spei_12))
 #'create long form CWV DF for creating figures
 #'
 CWV_figures <- CWV %>% gather("trait_name", value, 2:6)
@@ -60,7 +68,7 @@ current_CWV_spei_panel
 
 #plot fig 2: panel plot of CWV of traits and lagged spei_12
 lag_CWV_spei_panel <- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")),
-   mapping = aes(x=spei_lag, y=value))+
+   mapping = aes(x=lagged_spei12, y=value))+
   geom_point(size = 0.75)+
   geom_smooth(method=lm)+
   facet_grid(trait_name~., scales = "free_y")
@@ -148,11 +156,7 @@ summary(lag_CWV_SLA_spei_LM)
 #'
 
 
-#issue: trying to figure out how to show spei_12 on x-axis 
-# **solution: need to have climate data in their own column if want to use on the x-axis, so just merge climate data with long-form trait value
-# ** it's okay that climate data are both in the trait_name column, and in their own column. 
-# ** it's more columns in the data frame, but also makes the data frame flexible so you can plot however you like
-tranCWM_figures <- left_join(tranCWM_figures, clim_dat, by = c("Year" = "year"))
+
 
 #plot fig 3: panel plot of CWM traits at transect level with current spei_12 on x
 current_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
@@ -211,32 +215,36 @@ summary(current_tranCWM_SLA_spei_LM)
 #LM of CWM height and lagged spei_12
 #pvalue .2 r^2 .002
 #not significant
-lagged_CWM_height_spei_LM <-lm(formula = final_height_cm ~ spei_lag, data = tranCWM_regressions)
+lagged_CWM_height_spei_LM <-lm(formula = final_height_cm ~ lagged_spei12, data = tranCWM_regressions)
 summary(lagged_CWM_height_spei_LM)
 
 #LM of CWM RMR and lagged spei_12
 #pvalue .004 r^2 .03144
 #significant!
-lagged_CWM_RMR_spei_LM <- lm(formula = RMR ~ spei_lag, data = tranCWM_regressions)
+lagged_CWM_RMR_spei_LM <- lm(formula = RMR ~ lagged_spei12, data = tranCWM_regressions)
 summary(lagged_CWM_RMR_spei_LM)
 
 #LM of CWM RDMC and lagged spei_12
 #pvalue .04 r^2 .0146
 #significant
-lagged_CWM_RDMC_spei_LM <-lm(formula=RDMC ~ spei_lag, data = tranCWM_regressions)
+lagged_CWM_RDMC_spei_LM <-lm(formula=RDMC ~ lagged_spei12, data = tranCWM_regressions)
 summary(lagged_CWM_RDMC_spei_LM)
+
+plot(tranCWM_regressions$lagged_spei12,tranCWM_regressions$RDMC)
 
 #LM of CWM seedmass and lagged spei_12
 #pvalue .86 r^2 -.004
 #not significant
-lagged_CWM_seedmass_spei_LM<-lm(formula = seed_mass ~ spei_lag, data = tranCWM_regressions)
+lagged_CWM_seedmass_spei_LM<-lm(formula = seed_mass ~ lagged_spei12, data = tranCWM_regressions)
 summary(lagged_CWM_seedmass_spei_LM)
 
 #LM of CWM SLA and lagged spei_12
 #pvalue .08 r^2 .008
 #not significant
-lagged_CWM_SLA_spei_LM <-lm(formula = SLA ~ spei_lag, data = tranCWM_regressions)
+lagged_CWM_SLA_spei_LM <-lm(formula = SLA ~ lagged_spei12, data = tranCWM_regressions)
 summary(lagged_CWM_SLA_spei_LM)
+
+
 
 
   
