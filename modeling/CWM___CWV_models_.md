@@ -405,11 +405,11 @@ fig 3: current spei\_12
 fig 4: lagged spei\_12
 
 ``` r
-#plot fig 3: panel plot of CWM traits at transect level with current spei_12 on x
+#plot fig 3: panel plot of CWM traits at transect level with current spei_12 on x. shows overall trend
 current_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
-               mapping = aes(x=spei_12, y=value))+
-  geom_point(aes(col = transect_ID.clean), size = 0.75)+
-  geom_smooth(method=lm)+
+                                     mapping = aes( x=spei_12, y=value))+
+  geom_point(size = 0.75)+
+  geom_smooth(method=lm, se=FALSE)+
   facet_grid(trait_name~., scales = "free_y")+
   ggtitle("Relationship between Transect level CWM and spei_12")
 
@@ -418,14 +418,28 @@ current_tranCWM_spei_panel
 
 ![](CWM___CWV_models__files/figure-markdown_github/unnamed-chunk-11-1.png)
 
-plot fig 4: panel plot of CWM traits at transect level with lagged spei\_12 on x
+``` r
+#plot CWM traits and current spei_12. Shows changes in mean value across transects
+current_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
+               mapping = aes(col = transect_ID.clean, x=spei_12, y=value))+
+  geom_point(aes(col = transect_ID.clean), size = 0.75)+
+  geom_smooth(method=lm, se=FALSE)+
+  facet_grid(trait_name~transect_ID.clean, scales = "free_y")+
+  ggtitle("Relationship between Transect level CWM and spei_12")
+
+current_tranCWM_spei_panel
+```
+
+![](CWM___CWV_models__files/figure-markdown_github/unnamed-chunk-11-2.png)
+
+plot fig 4: panel plot of CWM traits at transect level with lagged spei\_12 on x. shows different transects explicitly
 
 ``` r
-lagged_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
-                                    mapping = aes(x=lagged_spei12, y=value))+
-  geom_point(aes(col = transect_ID.clean), size = 0.75)+
+lagged_tranCWM_spei_panel<- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
+                                    mapping = aes(col=transect_ID.clean, x=lagged_spei12, y=value))+
+  geom_point( size = 0.75)+
   geom_smooth(method=lm)+
-  facet_grid(trait_name~., scales = "free_y")+
+  facet_grid(trait_name~transect_ID.clean, scales = "free_y")+
   ggtitle("relationship between CWM by transect and lagged spei_12")
 
 lagged_tranCWM_spei_panel
@@ -437,34 +451,83 @@ lagged_tranCWM_spei_panel
 
 ![](CWM___CWV_models__files/figure-markdown_github/unnamed-chunk-12-1.png)
 
+``` r
+#panel plot CWM traits and lagged spei_12 across transects to observe global trends
+lagged_tranCWM_spei_panel_global <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
+                                    mapping = aes( x=lagged_spei12, y=value))+
+  geom_point( size = 0.75)+
+  geom_smooth(method=lm)+
+  facet_grid(trait_name~., scales = "free_y")+
+  ggtitle("relationship between CWM by transect and lagged spei_12")
+
+lagged_tranCWM_spei_panel_global
+```
+
+    ## Warning: Removed 9 rows containing non-finite values (stat_smooth).
+
+    ## Warning: Removed 9 rows containing missing values (geom_point).
+
+![](CWM___CWV_models__files/figure-markdown_github/unnamed-chunk-12-2.png)
+
 ====run linear regressions for CWM traits and spei\_12 (current)=====
 
 ``` r
 #LM for CWM RMR and spei
 #p value .5 r^2 -.002
 #not significant
-current_tranCWM_RMR_spei_LM <- lm(formula = RMR ~ spei_12, data = tranCWM_regressions)
+current_tranCWM_RMR_spei_LM <- lm(formula = RMR ~ spei_12*transect_ID.clean, data = tranCWM_regressions)
 summary(current_tranCWM_RMR_spei_LM)
 ```
 
     ## 
     ## Call:
-    ## lm(formula = RMR ~ spei_12, data = tranCWM_regressions)
+    ## lm(formula = RMR ~ spei_12 * transect_ID.clean, data = tranCWM_regressions)
     ## 
     ## Residuals:
     ##       Min        1Q    Median        3Q       Max 
-    ## -0.080372 -0.029417 -0.002573  0.030491  0.094366 
+    ## -0.080148 -0.018114  0.002214  0.018922  0.072016 
     ## 
     ## Coefficients:
-    ##              Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)  0.350981   0.002660 131.930   <2e-16 ***
-    ## spei_12     -0.001931   0.002935  -0.658    0.511    
+    ##                                Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)                    0.336329   0.006340  53.049  < 2e-16 ***
+    ## spei_12                        0.001120   0.006967   0.161  0.87240    
+    ## transect_ID.clean7_10         -0.007532   0.008966  -0.840  0.40187    
+    ## transect_ID.clean7_2          -0.006874   0.008877  -0.774  0.43967    
+    ## transect_ID.clean7_3           0.025604   0.008877   2.884  0.00435 ** 
+    ## transect_ID.clean7_4           0.049377   0.008966   5.507 1.10e-07 ***
+    ## transect_ID.clean7_5           0.037910   0.008877   4.270 3.00e-05 ***
+    ## transect_ID.clean7_6          -0.010891   0.008877  -1.227  0.22133    
+    ## transect_ID.clean7_7          -0.008842   0.008966  -0.986  0.32524    
+    ## transect_ID.clean7_9           0.053946   0.008966   6.017 8.24e-09 ***
+    ## spei_12:transect_ID.clean7_10 -0.001456   0.009853  -0.148  0.88265    
+    ## spei_12:transect_ID.clean7_2   0.002995   0.009798   0.306  0.76017    
+    ## spei_12:transect_ID.clean7_3   0.003428   0.009798   0.350  0.72683    
+    ## spei_12:transect_ID.clean7_4  -0.005572   0.009853  -0.566  0.57234    
+    ## spei_12:transect_ID.clean7_5  -0.005665   0.009798  -0.578  0.56381    
+    ## spei_12:transect_ID.clean7_6  -0.002717   0.009798  -0.277  0.78185    
+    ## spei_12:transect_ID.clean7_7  -0.008505   0.009853  -0.863  0.38902    
+    ## spei_12:transect_ID.clean7_9  -0.010657   0.009853  -1.082  0.28069    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 0.03946 on 218 degrees of freedom
-    ## Multiple R-squared:  0.001982,   Adjusted R-squared:  -0.002596 
-    ## F-statistic: 0.433 on 1 and 218 DF,  p-value: 0.5112
+    ## Residual standard error: 0.03106 on 202 degrees of freedom
+    ## Multiple R-squared:  0.427,  Adjusted R-squared:  0.3788 
+    ## F-statistic: 8.855 on 17 and 202 DF,  p-value: < 2.2e-16
+
+``` r
+current_tranCWM_RMR_spei_LM2 <- lm(formula = RMR ~ spei_12+transect_ID.clean, data = tranCWM_regressions)
+current_tranCWM_RMR_spei_LM3 <- lm(formula = RMR ~ spei_12, data = tranCWM_regressions)
+
+anova(current_tranCWM_RMR_spei_LM, current_tranCWM_RMR_spei_LM2)
+```
+
+    ## Analysis of Variance Table
+    ## 
+    ## Model 1: RMR ~ spei_12 * transect_ID.clean
+    ## Model 2: RMR ~ spei_12 + transect_ID.clean
+    ##   Res.Df     RSS Df  Sum of Sq      F Pr(>F)
+    ## 1    202 0.19486                            
+    ## 2    210 0.19870 -8 -0.0038397 0.4975 0.8571
 
 ``` r
 #LM for CWM height and spei_12
@@ -661,12 +724,8 @@ summary(lagged_CWM_RDMC_spei_LM)
     ## F-statistic: 4.433 on 1 and 209 DF,  p-value: 0.03644
 
 ``` r
-plot(tranCWM_regressions$lagged_spei12,tranCWM_regressions$RDMC)
-```
+#plot(tranCWM_regressions$lagged_spei12,tranCWM_regressions$RDMC)
 
-![](CWM___CWV_models__files/figure-markdown_github/unnamed-chunk-14-1.png)
-
-``` r
 #LM of CWM seedmass and lagged spei_12
 #pvalue .86 r^2 -.004
 #not significant
@@ -721,3 +780,65 @@ summary(lagged_CWM_SLA_spei_LM)
     ##   (9 observations deleted due to missingness)
     ## Multiple R-squared:  0.01382,    Adjusted R-squared:  0.009101 
     ## F-statistic: 2.929 on 1 and 209 DF,  p-value: 0.08849
+
+``` r
+# # -- COMPILE ALL LM RESULTS -----
+# # 1) create vector of linear model objects in your global environment
+# # list all objects in your global environment
+# env_objects <- ls()
+# # grab the objects that are linear models
+# ## this line iterates over env_objects and tests whether it is an lm objects or not, it returns TRUE or FALSE
+# # lms_only <- unlist(sapply(env_objects, function(x) class(get(x)) == "lm"))
+# # ## this line subsets the env_objects vector to keep only the positions where lms_only == TRUE
+# # ## i.e. it pulls out the names of lm objects only
+# # lm_objects <- env_objects[lms_only]
+# lm_objects <- env_objects[grepl("_LM", env_objects)]
+# 
+# # 2) # initiate empty data frames for lm results
+# # to store overall model results
+# model_df <- data.frame()
+# # to store coefficient results
+# coeff_df <- data.frame()
+# 
+# # 3) use a for-loop to grab model results in all models generated
+# # a for-loop will run the code in between the curly brackets for every object in your lm_objects, one at a time
+# for(o in 1:length(lm_objects)){
+#   # isolate the lm of interest, store in  temporary model object
+#   temp.lm  <- get(lm_objects[o])
+#   model_call <- as.character((summary(temp.lm)[[1]]))
+#   dataset = model_call[3]
+#   model = model_call[2]
+#   terms <- names(temp.lm$coefficients)
+#   # iterate through each term in the linear model and grab results
+#   for(t in 1:length(terms)){
+#     # this inner-for loop grabs model results for individual terms
+#     coeff.name = terms[t]
+#     coeff.value = temp.lm$coefficients[[t]]
+#     CI.lower.bound = confint(temp.lm)[t]
+#     CI.upper.bound = confint(temp.lm)[t+2]
+#     coeff.pval = summary(temp.lm)[[4]][colnames(summary(temp.lm)[[4]]) == "Pr(>|t|)"][t]
+#     # compile coefficient term results data frame, adding in results for term isolated at top of inner-for loop
+#     coeff_df <- rbind(coeff_df,
+#                       data.frame(cbind(dataset, model, coeff.name, coeff.value, coeff.pval, CI.upper.bound, CI.lower.bound)))
+# 
+#   }
+#   # number of observations used in model (i.e. sample size)
+#   n = nrow(temp.lm$model)
+#   # overall model p-value
+#   model.pval = anova(temp.lm)$`Pr(>F)`[1]
+#   # model adjusted r-squared
+#   adj.r2 = summary(temp.lm)$adj.r.squared
+#   # compile overall model results data frame, adding in results for model isolated at top of for loop
+#   model_df <- rbind(model_df,
+#                     data.frame(cbind(dataset, model, n, model.pval, adj.r2)))
+# }
+# 
+# # 4) compile everything in a master results data frame
+# ## overall model values will repeat with each coefficient term (because those terms are from the same model)
+# master_lm_results <- merge(model_df, coeff_df)
+# 
+# 
+# 
+# 
+# 
+```
