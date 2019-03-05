@@ -158,12 +158,22 @@ summary(lag_CWV_SLA_spei_LM)
 
 
 
-#plot fig 3: panel plot of CWM traits at transect level with current spei_12 on x
+#plot fig 3: panel plot of CWM traits at transect level with current spei_12 on x. shows overall trend
 current_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
-               mapping = aes(x=spei_12, y=value))+
-  geom_point(aes(col = transect_ID.clean), size = 0.75)+
-  geom_smooth(method=lm)+
+                                     mapping = aes( x=spei_12, y=value))+
+  geom_point(size = 0.75)+
+  geom_smooth(method=lm, se=FALSE)+
   facet_grid(trait_name~., scales = "free_y")+
+  ggtitle("Relationship between Transect level CWM and spei_12")
+
+current_tranCWM_spei_panel
+
+#plot CWM traits and current spei_12. Shows changes in mean value across transects
+current_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
+               mapping = aes(col = transect_ID.clean, x=spei_12, y=value))+
+  geom_point(aes(col = transect_ID.clean), size = 0.75)+
+  geom_smooth(method=lm, se=FALSE)+
+  facet_grid(trait_name~transect_ID.clean, scales = "free_y")+
   ggtitle("Relationship between Transect level CWM and spei_12")
 
 current_tranCWM_spei_panel
