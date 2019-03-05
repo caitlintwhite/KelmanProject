@@ -29,17 +29,14 @@ poolCWM_regressions <- read.csv(paste0(gdrive, "/KelmanProject/Data/pooledCWM_fo
 poolCWM_figures <- read.csv(paste0(gdrive, "/KelmanProject/Data/pooledCWM_for_figures.csv"))
 clim_dat <- read.csv(paste0(gdrive, "/KelmanProject/Data/boulder_climate.csv"))
 
-
-#'add lagged spei_12 to tranCWM_figures DF & CWV DF
 #'
-#'create vector
+#'
+#'create vector for spei_lag and add to tranCWM_regressions, tranCWM_figures, & CWV
 CWV$spei_lag <- lag(CWV$spei_12, k=1)
-#'
-#'add to DF
-tranCWM_figures$lagged_spei12 <- CWV$spei_lag
+tranCWM_regressions$spei_lag <- lag(tranCWM_regressions$spei_12, k=1)
 CWV$lagged_spei12 <- CWV$spei_lag
-#error
-#tranCWM_regressions$lagged_spei12 <-CWV$spei_lag
+tranCWM_figures$lagged_spei12 <- CWV$spei_lag
+
 
 #'create long form CWV DF for creating figures
 #'
@@ -210,8 +207,36 @@ current_tranCWM_SLA_spei_LM <- lm(formula = SLA ~spei_12, data = tranCWM_regress
 summary(current_tranCWM_SLA_spei_LM)
 #'
 #'====run linear regressions for CWM traits and spei_12 (lagged)=====
+#'
+#LM of CWM height and lagged spei_12
+#pvalue .2 r^2 .002
+#not significant
+lagged_CWM_height_spei_LM <-lm(formula = final_height_cm ~ spei_lag, data = tranCWM_regressions)
+summary(lagged_CWM_height_spei_LM)
 
+#LM of CWM RMR and lagged spei_12
+#pvalue .004 r^2 .03144
+#significant!
+lagged_CWM_RMR_spei_LM <- lm(formula = RMR ~ spei_lag, data = tranCWM_regressions)
+summary(lagged_CWM_RMR_spei_LM)
 
+#LM of CWM RDMC and lagged spei_12
+#pvalue .04 r^2 .0146
+#significant
+lagged_CWM_RDMC_spei_LM <-lm(formula=RDMC ~ spei_lag, data = tranCWM_regressions)
+summary(lagged_CWM_RDMC_spei_LM)
+
+#LM of CWM seedmass and lagged spei_12
+#pvalue .86 r^2 -.004
+#not significant
+lagged_CWM_seedmass_spei_LM<-lm(formula = seed_mass ~ spei_lag, data = tranCWM_regressions)
+summary(lagged_CWM_seedmass_spei_LM)
+
+#LM of CWM SLA and lagged spei_12
+#pvalue .08 r^2 .008
+#not significant
+lagged_CWM_SLA_spei_LM <-lm(formula = SLA ~ spei_lag, data = tranCWM_regressions)
+summary(lagged_CWM_SLA_spei_LM)
 
 
   
