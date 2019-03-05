@@ -178,15 +178,27 @@ current_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("f
 
 current_tranCWM_spei_panel
 
-#'plot fig 4: panel plot of CWM traits at transect level with lagged spei_12 on x
-lagged_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
-                                    mapping = aes(x=lagged_spei12, y=value))+
-  geom_point(aes(col = transect_ID.clean), size = 0.75)+
+#'plot fig 4: panel plot of CWM traits at transect level with lagged spei_12 on x. shows different transects explicitly
+lagged_tranCWM_spei_panel<- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
+                                    mapping = aes(col=transect_ID.clean, x=lagged_spei12, y=value))+
+  geom_point( size = 0.75)+
+  geom_smooth(method=lm)+
+  facet_grid(trait_name~transect_ID.clean, scales = "free_y")+
+  ggtitle("relationship between CWM by transect and lagged spei_12")
+
+lagged_tranCWM_spei_panel
+
+
+#panel plot CWM traits and lagged spei_12 across transects to observe global trends
+lagged_tranCWM_spei_panel_global <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
+                                    mapping = aes( x=lagged_spei12, y=value))+
+  geom_point( size = 0.75)+
   geom_smooth(method=lm)+
   facet_grid(trait_name~., scales = "free_y")+
   ggtitle("relationship between CWM by transect and lagged spei_12")
 
-lagged_tranCWM_spei_panel
+lagged_tranCWM_spei_panel_global
+
 
 #'====run linear regressions for CWM traits and spei_12 (current)=====
 #'
