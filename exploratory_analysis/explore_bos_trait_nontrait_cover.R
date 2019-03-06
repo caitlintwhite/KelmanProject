@@ -29,8 +29,8 @@ library(readxl) # for reading in excel workbooks
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-gdrive <- "../../Google\ Drive" #ctw path
+gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+#gdrive <- "../../Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 # set path to datasets
