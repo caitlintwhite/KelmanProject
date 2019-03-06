@@ -39,13 +39,20 @@ gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
 bos_datpath <-paste0(gdrive, "/KelmanProject/Data/raw/tgsna_monitoring_19912016.csv")
 # there are two trait datasets in Kelman Project? reading one from data folder with more recent timestamp
 trait_datpath <-paste0(gdrive, "/KelmanProject/Data/Trait_species_list_veg_dormancy.xlsx")
+bos_dat_clean <- paste0(gdrive, "/KelmanProject/Data/tgsna_monitoring_19962016_clean.csv")
+spp_lookup <- paste0(gdrive, "/KelmanProject/Data/tgsna_trait_spp_lookup.csv")
 
 #read in datasets
-bos_dat <- read_csv(bos_datpath)
+bos_dat <- read.csv(bos_datpath)
 trait_dat <- read_xlsx(trait_datpath)
+bos_dat_clean <-read.csv(bos_dat_clean)
+spp_lookup <-read.csv(spp_lookup)
+spp_lookup <- spp_lookup[2:ncol(spp_lookup)] #get rid of junk csv index columns "X" 
 
 
-# --- PREP DATASETS FOR ANALYSIS -----
+
+# --- EXPLORE RAW DATASETS -----
+# ** this code is looking at the original bosmp data (not cleaned) to see how to screen data, and matching spp codes in BOSMP dataset manually with spp codes in trait dataset
 #look at structure of data frames
 glimpse(bos_dat) #method using tidyverse function
 str(bos_dat) #method using base R function
@@ -54,8 +61,6 @@ glimpse(trait_dat)
 
 # subset datasets to what's needed for analysis
 cover_dat <- subset(bos_dat, DataType == "COVER" & Lifeform!="Ground cover")
-
-
 
 #what species in trait dataset are in bos dataset (without data cleaning)
 trait_species <- unique(trait_dat$`Species code`)
@@ -104,17 +109,22 @@ cover_dat$OSMPSciName <-  ifelse(cover_dat$OSMP_Code == "junarc",
 # unique(vegcoverdat$OSMP_Code)
 # 
 # #create a new column to quantify relative cover now that we've removed rock litter etc.
-# vegcoverdat <- vegcoverdat %>%
-#   group_by(Year, Area, Transect) %>%
-#   mutate(RelCov = Cov_freq_val/sum(Cov_freq_val))
+#vegcoverdat <- vegcoverdat %>%
+#  group_by(Year, Area, Transect) %>%
+# mutate(RelCov = Cov_freq_val/sum(Cov_freq_val))
 
+
+# -- PREPARE CLEAN BOS DATA FOR TRAIT VS NON-TRAIT COVER FIGURES ----
+# ** from here on, uses clean BOSMP dataset
+cover_dat_clean <- subset(bos_dat_clean, DataType == "COVER")
 
 # summarize cover dataset by what's in trait dataset vs what's not in trait dataset
 # each area-transect combo, per year, should have 2 rows: total cover for trait species and total cover for not-trait-species
 # start you code here and assign issue when you get stuck...
-grpd_cover <- cover_dat %>% 
+grpd_cover <- cover_dat_clean %>% 
   subset(Lifeform != "Ground cover") %>%  # <-- **remove non-veg cover in one line of code. see Lifeform variable in bos_dat ** 
-  mutate(transect_ID = paste(Area, Transect,sep = "_")) %>%
+  #mutate(transect_ID = paste(Area, transect_ID,sep = "_")) %>% # ctw already made transect_ID for bos_dat_clean, reads in with it 
+  mutate(trait_sp = ifelse(OSMP_Code.clean %in% spp_lookup$OSMP_Code.clean,"yes", "no")) %>% # add column to indicate whether in trait dataset or not
   group_by(Year, transect_ID, trait_sp) %>%
   summarize(summed_cover = sum(Cov_freq_val)) %>%
   ungroup() %>%
@@ -183,10 +193,10 @@ relcov_fig
 # multiple hits could be recorded if the vegetation was layered (e.g. grass over forb over another forb; shrub over grass over forb, etc.)
 # what if we only consider the first hit species?
 # we'll need to start with the cover dataset again to subset only first hit cover (Frst_hit == "Yes")
-firstcov_fig <- cover_dat %>%
+firstcov_fig <- cover_dat_clean %>%
   subset(Frst_hit == "Yes" & Lifeform != "Ground cover") %>%
   # then aggregate (summarize) as we did about for grouped_cover and pipe to ggpplot
-  mutate(transect_ID = paste(Area, Transect,sep = "_")) %>%
+  mutate(trait_sp = ifelse(OSMP_Code.clean %in% spp_lookup$OSMP_Code.clean,"yes", "no")) %>% # add column to indicate whether in trait dataset or not
   group_by(Year, transect_ID, trait_sp) %>%
   summarize(cover_tophit = sum(Cov_freq_val)) %>%
   # left_join(grpd_cover) %>%
@@ -214,7 +224,7 @@ temporal_meancover <- grpd_cover %>% # start with grpd_cover since it didn't see
             nobs = length(Year), # number of annual observations in the record per transect (i.e. number of times transect sampled)
             std_dev = sd(summed_cover), #std dev of mean absolute cover
             std_error = std_dev/sqrt(nobs), #std error of mean absolute cover
-            rel_sd = sd(summed_cover), # std dev of mean relative cover
+            rel_sd = sd(rel_cover), # std dev of mean relative cover
             rel_se = rel_sd/sqrt(nobs)) # std error of mean relative cover
 
 # temporal mean by site, split by species in trait dataset/not in trait dataset  
@@ -234,34 +244,37 @@ meancov_fig
 
 # ** EK: you could add a plot here for mean RELATIVE cover (with error bars) over time
 
-meanrel_fig <- ggplot(temporal_meancover, aes(avg_relcover, transect_ID)) +
-  geom_vline(aes(xintercept=mean(avg_relcover)), lty = 2) +
-  geom_errorbarh(aes(xmax = avg_relcover + std_error, xmin = avg_relcover - std_error, col = trait_sp)) +
-  geom_point(aes(fill(trait_sp), pch=21, size=2, alpha=.7))
+meanrel_fig <- ggplot(temporal_meancover, aes(avg_relcover, transect_ID, fill = trait_sp)) +
+  geom_vline(aes(xintercept=0.5), lty = 2) +
+  geom_errorbarh(aes(xmax = avg_relcover + rel_se, xmin = avg_relcover - rel_se, col = trait_sp)) +
+  geom_point(pch = 21, size=2, alpha=.7) +
+  labs(y = "Transect", x = "Temporal mean cover (%)",
+       title = "Temporal mean relative transect vegetative cover (1991-2016), by species in and not in trait dataset, by site",
+       subtitle = "Mean of summed species relative cover, bars show ±1 standard error") +
+  scale_fill_manual(name = "In trait database?", values = c("no" = "orchid2", "yes" = "royalblue3")) +
+  scale_color_discrete(guide = "none")+
+  theme_bw()
 
- 
-
-
-#meanrel_fig
+meanrel_fig
 
 
 # what about cover of individual trait dataset species over space and time?
 # similary, instead of creating a new dataset, we can just aggregate the cover dataset as we want and then pipe it to ggplot
-spcov_fig <- cover_dat %>% # start with this dataset, and continue pipe..
+spcov_fig <- cover_dat_clean %>% # start with this dataset, and continue pipe..
+  mutate(trait_sp = ifelse(OSMP_Code.clean %in% spp_lookup$OSMP_Code.clean,"yes", "no")) %>% # add column to indicate whether in trait dataset or not
   subset(trait_sp == "yes") %>%
-  mutate(transect_ID = paste(Area, Transect,sep = "_")) %>% # change NA in junarc to "Juncus arcticus"
-  group_by(Year, transect_ID, OSMP_Code, OSMPSciName) %>%
+  group_by(Year, transect_ID, OSMP_Code.clean, OSMPSciName.clean, shortSciName) %>%
   summarise(summed_cover = sum(Cov_freq_val)) %>%
   ungroup() %>%
-  group_by(Year, OSMP_Code, OSMPSciName) %>%
+  group_by(Year, OSMP_Code.clean, OSMPSciName.clean, shortSciName) %>%
   summarise(total_cover = sum(summed_cover),
             nobs = length(transect_ID)) %>%
-  mutate(short_sciname = gsub(" var.+| ssp.+", "", OSMPSciName)) %>% # remove varietal or sub-species names for plotting
+  #mutate(short_sciname = gsub(" var.+| ssp.+", "", OSMPSciName)) %>% # remove varietal or sub-species names for plotting
   ggplot(aes(Year, total_cover)) +
   geom_point(alpha = 0.5) +
   labs(y = "Total cover (%)",
        title = "BOS xeric tallgrass regional summed cover (all transects), by trait dataset species, by year") +
-  facet_wrap(~short_sciname, labeller = label_wrap_gen(width = 20)) +
+  facet_wrap(~shortSciName, labeller = label_wrap_gen(width = 20)) +
   theme_light() +
   theme(strip.text.x = element_text(face = "italic"))
 
@@ -279,8 +292,8 @@ ggsave("./exploratory_analysis/figures/BOS_relativecover.pdf", relcov_fig,
        width = 6, height = 4, units = "in", scale = 1.5)
 ggsave("./exploratory_analysis/figures/BOS_mean_abscover.pdf", meancov_fig, 
        width = 6, height = 4, units = "in", scale = 1.5)
-#ggsave("./exploratory_analysis/figures/BOS_mean_relcover.pdf", meanrel_fig, ## **EK: if make this figure, save to github/figures folder
-#       width = 6, height = 4, units = "in", scale = 1.5)
+ggsave("./exploratory_analysis/figures/BOS_mean_relcover.pdf", meanrel_fig, ## **EK: if make this figure, save to github/figures folder
+       width = 6, height = 4, units = "in", scale = 1.5)
 ggsave("./exploratory_analysis/figures/BOS_trait_indsp_cov.pdf", spcov_fig, scale = 1.35)
 
 
