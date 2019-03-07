@@ -25,8 +25,8 @@ options(theme_set(theme_bw())) # set default ggplot theme as theme_bw
 
 #set relative pathway to Google Drive --> user will need to adjust this <---
 # **uncomment whichever path is yours when running script
-#gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
-gdrive <- "/Users/serahsierra/Google\ Drive" #ctw path
+gdrive <- "/Users/emilykelman/Google\ Drive" #emily's path
+#gdrive <- "/Users/serahsierra/Google\ Drive" #ctw path
 #gdrive <- "" #julie's path
 
 #read in data
