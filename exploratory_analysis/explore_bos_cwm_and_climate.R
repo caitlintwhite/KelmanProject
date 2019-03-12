@@ -415,12 +415,14 @@ spei5_traits_overT_panel
 Enviro_variables_overT_panel <-ggplot(subset(poolCWM_climate_merged_L, trait_name%in% c("precip_12", "tmean_12", "spei_12")), mapping = aes(Year, value))+
   geom_line()+
   geom_point(size=.5)+
+  geom_smooth(method=lm)+
   scale_x_continuous(breaks = seq(1992, 2016, by = 2))+
   theme(axis.text.x = element_text(angle=45, hjust = 1))+
   facet_grid(trait_name~., scales = "free_y")
 
 
 Enviro_variables_overT_panel
+
 
 #creating correlation matrix for CWM traits
 traits_correlation <- cor(bos_cwm[traits])

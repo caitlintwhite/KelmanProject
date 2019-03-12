@@ -74,7 +74,7 @@ mapping = aes(x=spei_12, y=value))+
   labs(y = "Functional trait Community Weighted Variance (CWV) value") +
   facet_grid(trait_name~., scales = "free_y")
 
-#current_CWV_spei_panel
+current_CWV_spei_panel
 
 #plot fig 2: panel plot of CWV of traits and lagged spei_12
 lag_CWV_spei_panel <- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")),
@@ -189,6 +189,8 @@ current_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("f
 
 #current_tranCWM_spei_panel
 
+current_tranCWM_spei_present_fig <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "RDMC")))+
+  mapping
 #panel plot CWM traits and lagged spei_12 across transects to observe global trends
 lagged_tranCWM_spei_panel_global <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
                                            mapping = aes( x=lagged_spei12, y=value))+
@@ -250,7 +252,8 @@ summary(current_tranCWM_RMR_spei_LM)
 current_tranCWM_RMR_spei_LM2 <- lm(formula = RMR ~ spei_12+transect_ID.clean, data = tranCWM_regressions)
 current_tranCWM_RMR_spei_LM3 <- lm(formula = RMR ~ spei_12, data = tranCWM_regressions)
 
-anova(current_tranCWM_RMR_spei_LM, current_tranCWM_RMR_spei_LM2)
+anova(current_tranCWM_RMR_spei_LM3, current_tranCWM_RMR_spei_LM2)
+anova(current_tranCWM_RMR_spei_LM2, current_tranCWM_RMR_spei_LM)
 
 #LM for CWM height and spei_12
 #p value .037 r^2 .015
@@ -376,5 +379,34 @@ master_lm_results <- merge(model_df, coeff_df)
 
 
 
+# -- FINAL FIGURES ------
+# 1) CWV PANEL FIGURE
+test <- subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")) %>%
+  left_join(subset(model_df, dataset == "CWV" & grepl(" spei_12", model)), by = c("trait_name" = "y"))
+
+current_CWV_spei_panel<- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")), 
+                                mapping = aes(x=spei_12, y=value))+
+  geom_point(size = 0.75)+
+  geom_smooth(method=lm)+
+  labs(y = "Functional trait Community Weighted Variance (CWV) value") +
+  facet_grid(trait_name~., scales = "free_y")
+
+current_CWV_spei_panel
+
+#plot fig 2: panel plot of CWV of traits and lagged spei_12
+lag_CWV_spei_panel <- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")),
+                             mapping = aes(x=lagged_spei12, y=value))+
+  geom_point(size = 0.75)+
+  geom_smooth(method=lm)+
+  labs(y=NULL) +
+  facet_grid(trait_name~., scales = "free_y")
+
+#lag_CWV_spei_panel            
+
+# plot current and lagged spei panels side by side
+plot_grid(current_CWV_spei_panel, lag_CWV_spei_panel,
+          ncol = 2, 
+          align = "h",
+          rel_widths = c(1,0.95)) #make left hand side plot a little wider because it has the y-axis label
 
 
