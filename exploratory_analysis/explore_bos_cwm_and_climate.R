@@ -412,13 +412,27 @@ spei5_traits_overT_panel
 
 
 #plot changes in environmental variables over time (tmean_12, precip_12, spei_12)
-Enviro_variables_overT_panel <-ggplot(subset(poolCWM_climate_merged_L, trait_name%in% c("precip_12", "tmean_12", "spei_12")), mapping = aes(Year, value))+
+climlabels <- c(a = "Annual mean temperature (C)" ,
+               b = "Annual total precipitation (mm)",
+               c = "SPEI")
+
+envplot_df <- subset(poolCWM_climate_merged_L, trait_name%in% c("precip_12", "tmean_12", "spei_12")) %>%
+  mutate(traitorder = ifelse(trait_name == "tmean_12", "a",
+                             ifelse(trait_name == "precip_12", "b", "c")))
+#check lm signif
+templm <- lm(value ~ Year, data = subset(envplot_df, trait_name == "tmean_12"))
+summary(templm)
+plot(templm)
+summary(lm(value ~ Year, data = subset(envplot_df, trait_name == "precip_12")))
+Enviro_variables_overT_panel <- ggplot(envplot_df, mapping = aes(Year, value))+
+  geom_hline(data=subset(envplot_df, trait_name == "spei_12"), aes(yintercept =0), col = "grey50") +
   geom_line()+
   geom_point(size=.5)+
-  geom_smooth(method=lm)+
+  geom_point(data=subset(envplot_df, trait_name == "spei_12"), aes(Year, value, col = value), size=.5)+
+  geom_smooth(data=subset(envplot_df, trait_name == "tmean_12"), aes(Year, value), method=lm)+
   scale_x_continuous(breaks = seq(1992, 2016, by = 2))+
   theme(axis.text.x = element_text(angle=45, hjust = 1))+
-  facet_grid(trait_name~., scales = "free_y")
+  facet_grid(traitorder~., scales = "free_y", labeller = as_labeller(climlabels))
 
 
 Enviro_variables_overT_panel

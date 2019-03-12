@@ -15,7 +15,7 @@
 knitr::opts_chunk$set(echo = F, message = F, warning = F)
 rm(list=ls()) # start with clean environment
 options(stringsAsFactors = FALSE) #character variables never factor by default 
-         
+options(theme_set(theme_bw())) # set default ggplot theme as theme_bw         
 
 #  Load libraries 
 library(tidyverse) #tidyverse has ggplot2, no need to load separately
@@ -318,6 +318,7 @@ summary(lagged_CWM_SLA_spei_LM)
 
 
 # -- COMPILE ALL LM RESULTS -----
+
 # 1) create vector of linear model objects in your global environment
 # list all objects in your global environment
 env_objects <- unlist(ls())
@@ -345,8 +346,8 @@ for(o in 1:length(lm_objects)){
   # isolate the lm of interest, store in  temporary model object
   temp.lm  <- get(lm_objects[o])
   model_call <- as.character((summary(temp.lm)[[1]]))
-  dataset = model_call[3]
-  model = model_call[2]
+  dataset <- model_call[[3]]
+  model <- model_call[2]
   terms <- names(temp.lm$coefficients)
   # iterate through each term in the linear model and grab results
   for(t in 1:length(terms)){
@@ -361,13 +362,13 @@ for(o in 1:length(lm_objects)){
                       data.frame(cbind(dataset, model, coeff.name, coeff.value, coeff.pval, CI.upper.bound, CI.lower.bound)))
 
   }
-  y = temp.lm$terms[[2]]
+  y <- as.character(temp.lm$terms[[2]])
   # number of observations used in model (i.e. sample size)
-  n = nrow(temp.lm$model)
+  n <- nrow(temp.lm$model)
   # overall model p-value
-  model.pval = anova(temp.lm)$`Pr(>F)`[1]
+  model.pval <- anova(temp.lm)$`Pr(>F)`[1]
   # model adjusted r-squared
-  adj.r2 = summary(temp.lm)$adj.r.squared
+  adj.r2 <- summary(temp.lm)$adj.r.squared
   # compile overall model results data frame, adding in results for model isolated at top of for loop
   model_df <- rbind(model_df,
                     data.frame(cbind(dataset, model, y, n, model.pval, adj.r2)))
@@ -376,37 +377,115 @@ for(o in 1:length(lm_objects)){
 # 4) compile everything in a master results data frame
 ## overall model values will repeat with each coefficient term (because those terms are from the same model)
 master_lm_results <- merge(model_df, coeff_df)
+write_csv(master_lm_results, paste0(gdrive, "/KelmanProject/Data/master_lm_results.csv"))
+write_csv(model_df, paste0(gdrive, "/KelmanProject/overall_model_results.csv"))
 
+#+ r final figures, include = F, eval = F
+# -- FINAL FIGURES -----
+emily_theme <-  theme(strip.text = element_text(face="bold"),
+                      axis.title.y = element_text(face = "bold"))
 
+options(theme_set(theme_bw() +emily_theme)) # set default ggplot theme as theme_bw         
 
-# -- FINAL FIGURES ------
+#create DF with spelled out trait names
+trait_heading <- c(RMR = "Root mass ratio", 
+                   height = "Height (cm)",
+                   RDMC = "Root dry matter content",
+                   SLA = "Specific leaf area",
+                   seedmass = "Seedmass (g)")
+
 # 1) CWV PANEL FIGURE
-test <- subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")) %>%
-  left_join(subset(model_df, dataset == "CWV" & grepl(" spei_12", model)), by = c("trait_name" = "y"))
+plotting_CWV <- subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")) %>%
+  left_join(subset(model_df, dataset == "CWV" & grepl(" spei_12", model)), by = c("trait_name" = "y")) %>%
+  rename(spei12_pval = model.pval,
+         spei12_r2 = adj.r2) %>%
+  left_join(subset(model_df, dataset == "CWV" & grepl("lagged_spei", model)), by = c("trait_name" = "y", "dataset")) %>%
+  rename(lag_spei12_pval = model.pval,
+         lag_spei12_r2 = adj.r2)
 
-current_CWV_spei_panel<- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")), 
-                                mapping = aes(x=spei_12, y=value))+
-  geom_point(size = 0.75)+
-  geom_smooth(method=lm)+
+#CWV panel figure with color gradient and only significant trend lines (all traits)
+current_CWV_spei_panel<- ggplot(plotting_CWV, aes(x=spei_12, y=value))+
+  geom_point(aes( fill=spei_12), size = 2, pch=21)+
+  geom_smooth(data= subset(plotting_CWV, spei12_pval <= 0.05), col="black", method=lm) +
+  #geom_smooth(data = subset(plotting_CWV, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
   labs(y = "Functional trait Community Weighted Variance (CWV) value") +
-  facet_grid(trait_name~., scales = "free_y")
+  scale_fill_distiller(name="Annual\nSPEI", palette = "RdYlBu", direction = 1, guide = FALSE)+
+  facet_grid(trait_name~., scales = "free_y") +
+  theme(legend.position = "none",
+        strip.text = element_blank())
 
 current_CWV_spei_panel
 
-#plot fig 2: panel plot of CWV of traits and lagged spei_12
-lag_CWV_spei_panel <- ggplot(subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")),
-                             mapping = aes(x=lagged_spei12, y=value))+
-  geom_point(size = 0.75)+
-  geom_smooth(method=lm)+
-  labs(y=NULL) +
-  facet_grid(trait_name~., scales = "free_y")
+#subsetted CWV panel figure for presentation (3 traits)
+present_current_CWV_spei_panel<- ggplot(subset(plotting_CWV, trait_name %in% c("height", "RDMC", "RMR")), aes(x=spei_12, y=value))+
+  geom_point(aes( fill=spei_12), size = 2, pch=21)+
+  geom_smooth(data= subset(plotting_CWV, spei12_pval <= 0.05 & trait_name %in% c("height", "RDMC", "RMR")), 
+              col="black", method=lm) +
+  #geom_smooth(data = subset(plotting_CWV, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
+  labs(y = "Functional trait Community Weighted Variance (CWV) value", x="Sep-Aug SPEI, lagged (t-1)") +
+  scale_fill_distiller(name= "Annual\nSPEI", palette = "RdYlBu", direction = 1)+
+  facet_grid(trait_name~., scales = "free_y")  
+  
+  
+ 
+present_current_CWV_spei_panel
 
-#lag_CWV_spei_panel            
+#panel plot of CWV of traits and lagged spei_12
+lag_CWV_spei_panel <- ggplot(plotting_CWV,
+                             mapping = aes(x=lagged_spei12, y=value))+
+  geom_vline(aes(xintercept=0), col= "grey20", lty=2) +
+  geom_point(aes( fill=lagged_spei12), size = 2, pch=21)+
+  geom_smooth(data= subset(plotting_CWV, lag_spei12_pval <= 0.05), col="black", method=lm)+
+  #geom_smooth(data = subset(plotting_CWV, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
+  labs(y="Functional trait Community Weighted Variance (CWV) value", x="Sep-Aug SPEI, lagged (t-1)") +
+  scale_fill_distiller(name="SPEI", palette = "RdYlBu", direction = 1)+
+  facet_grid(trait_name~., scales = "free_y", labeller=as_labeller(trait_heading, label_wrap_gen(width=15)))+
+  theme(legend.title = element_text(size = 10),axis.title.y = element_blank(), axis.text.y = element_blank(),
+        axis.text = element_text(face="bold"))
+
+lag_CWV_spei_panel            
 
 # plot current and lagged spei panels side by side
 plot_grid(current_CWV_spei_panel, lag_CWV_spei_panel,
           ncol = 2, 
           align = "h",
-          rel_widths = c(1,0.95)) #make left hand side plot a little wider because it has the y-axis label
+          rel_widths = c(0.95,1)) #make left hand side plot a little wider because it has the y-axis label
 
 
+# -- EDIT MODEL OUTPUT TABLE 
+intercepts_only <- coeff_df %>%
+  subset(grepl("Inter", coeff.name)) %>%
+  dplyr::select(dataset:model, coeff.value) %>%
+  rename(Intercept = coeff.value) %>%
+  mutate(Intercept = round(as.numeric(Intercept),3))
+
+
+CWM_final_table <- master_lm_results
+to_round <- c("model.pval", "adj.r2", "coeff.value", "CI.upper.bound", "CI.lower.bound")
+CWM_final_table[colnames(CWM_final_table) %in% to_round] <- apply(CWM_final_table[colnames(CWM_final_table) %in% to_round], 2, function(x) round(as.numeric(x),4))
+
+CWM_final_table <- CWM_final_table %>%
+  filter(grepl("CWM", dataset)) %>% #pull out CWM models only
+  filter(!grepl("Inter", coeff.name)) %>%
+  filter(!grepl("[*]", model)) %>%
+  arrange(y, desc(coeff.name)) %>%
+  mutate(sort_col = ifelse(grepl("tran", model), 1, 0)) %>%
+  arrange(sort_col) %>%
+  dplyr::select(-c(y, coeff.pval)) %>%
+  left_join(intercepts_only) %>%
+  dplyr::select(dataset:adj.r2, Intercept, coeff.name:CI.lower.bound) %>%
+  mutate(model = gsub("[.]clean", "", model),
+         coeff.name = gsub("[.]clean", "", coeff.name)) %>%
+  rename(`Climate variable` = coeff.name) %>%
+  dplyr::select(-dataset)
+  
+write_csv(CWM_final_table, " add google drive ")  
+  
+
+#colnames(CWM_final_table) <- paste0(casefold(substr(colnames(CWM_final_table),1,1), upper =T),
+#                                    substr(colnames(CWM_final_table),2,nchar(colnames(CWM_final_table))))
+                                    
+                                    
+
+# write out all final figures
+ggsave("./exploratory_analysis/figures/area7_LDMC_fig.pdf", area7_LDMC_precip_fig)
