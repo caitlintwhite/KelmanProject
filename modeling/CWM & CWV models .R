@@ -161,7 +161,7 @@ summary(lag_CWV_seedmass_spei_LM)
 lag_CWV_SLA_spei_LM <- lm(formula = SLA ~ lagged_spei12, data = CWV)
 summary(lag_CWV_SLA_spei_LM)
 
-#'=====create CWM figures=====
+#'=====CREATE CWM FIGURES=====
 #'
 #'panel plot of CWMs, spei_12 on x, trait on y
 #
@@ -187,7 +187,7 @@ current_tranCWM_spei_panel <- ggplot(subset(tranCWM_figures, trait_name%in% c("f
   theme(plot.title = element_text(size = 10),
         axis.title = element_text(size = 10))
 
-#current_tranCWM_spei_panel
+current_tranCWM_spei_panel
 
 current_tranCWM_spei_present_fig <- ggplot(subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "RDMC")))+
   mapping
@@ -204,7 +204,7 @@ lagged_tranCWM_spei_panel_global <- ggplot(subset(tranCWM_figures, trait_name%in
   theme(plot.title = element_text(size = 10),
         axis.title = element_text(size = 10))
 
-#lagged_tranCWM_spei_panel_global
+lagged_tranCWM_spei_panel_global
 
 # plot current and lagged spei panels side by side
 plot_grid(current_tranCWM_spei_panel, lagged_tranCWM_spei_panel_global,
@@ -381,7 +381,7 @@ write_csv(master_lm_results, paste0(gdrive, "/KelmanProject/Data/master_lm_resul
 write_csv(model_df, paste0(gdrive, "/KelmanProject/overall_model_results.csv"))
 
 #+ r final figures, include = F, eval = F
-# -- FINAL FIGURES -----
+# -- FINAL CWV FIGURES -----
 emily_theme <-  theme(strip.text = element_text(face="bold"),
                       axis.title.y = element_text(face = "bold"))
 
@@ -392,7 +392,9 @@ trait_heading <- c(RMR = "Root mass ratio",
                    height = "Height (cm)",
                    RDMC = "Root dry matter content",
                    SLA = "Specific leaf area",
-                   seedmass = "Seedmass (g)")
+                   seedmass = "Seedmass (g)",
+                   final_height_cm = "Height (cm)",
+                   seed_mass = "Seedmass (g)")
 
 # 1) CWV PANEL FIGURE
 plotting_CWV <- subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RDMC", "seedmass")) %>%
@@ -403,34 +405,21 @@ plotting_CWV <- subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RD
   rename(lag_spei12_pval = model.pval,
          lag_spei12_r2 = adj.r2)
 
-#CWV panel figure with color gradient and only significant trend lines (all traits)
+#CWV current spei panel figure (FINAL)
 current_CWV_spei_panel<- ggplot(plotting_CWV, aes(x=spei_12, y=value))+
   geom_point(aes( fill=spei_12), size = 2, pch=21)+
   geom_smooth(data= subset(plotting_CWV, spei12_pval <= 0.05), col="black", method=lm) +
   #geom_smooth(data = subset(plotting_CWV, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
-  labs(y = "Functional trait Community Weighted Variance (CWV) value") +
+  labs(y = "Functional trait Community Weighted Variance (CWV) value", x="SPEI") +
   scale_fill_distiller(name="Annual\nSPEI", palette = "RdYlBu", direction = 1, guide = FALSE)+
-  facet_grid(trait_name~., scales = "free_y") +
+  facet_grid(trait_name~., scales = "free_y", labeller = as_labeller(trait_heading, label_wrap_gen((width=15)))) +
   theme(legend.position = "none",
         strip.text = element_blank())
 
 current_CWV_spei_panel
 
-#subsetted CWV panel figure for presentation (3 traits)
-present_current_CWV_spei_panel<- ggplot(subset(plotting_CWV, trait_name %in% c("height", "RDMC", "RMR")), aes(x=spei_12, y=value))+
-  geom_point(aes( fill=spei_12), size = 2, pch=21)+
-  geom_smooth(data= subset(plotting_CWV, spei12_pval <= 0.05 & trait_name %in% c("height", "RDMC", "RMR")), 
-              col="black", method=lm) +
-  #geom_smooth(data = subset(plotting_CWV, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
-  labs(y = "Functional trait Community Weighted Variance (CWV) value", x="Sep-Aug SPEI, lagged (t-1)") +
-  scale_fill_distiller(name= "Annual\nSPEI", palette = "RdYlBu", direction = 1)+
-  facet_grid(trait_name~., scales = "free_y")  
-  
-  
- 
-present_current_CWV_spei_panel
 
-#panel plot of CWV of traits and lagged spei_12
+#CWV lagged spei panel figure (FINAL)
 lag_CWV_spei_panel <- ggplot(plotting_CWV,
                              mapping = aes(x=lagged_spei12, y=value))+
   geom_vline(aes(xintercept=0), col= "grey20", lty=2) +
@@ -445,12 +434,49 @@ lag_CWV_spei_panel <- ggplot(plotting_CWV,
 
 lag_CWV_spei_panel            
 
-# plot current and lagged spei panels side by side
-plot_grid(current_CWV_spei_panel, lag_CWV_spei_panel,
+# plot current and lagged CWV spei panels side by side (FINAl FIG FOR THESIS DRAFT)
+Final_CWV_Fig <-plot_grid(current_CWV_spei_panel, lag_CWV_spei_panel,
+          ncol = 2, 
+          align = "h",
+          rel_widths = c(0.95,1)) #make left hand side plot a little wider because it has the y-axis label
+Final_CWV_Fig
+#subsetted CWV current spei panel figure for presentation (FINAL)
+present_current_CWV_spei_panel<- ggplot(subset(plotting_CWV, trait_name %in% c("height", "RDMC", "RMR")), aes(x=spei_12, y=value))+
+  geom_vline(aes(xintercept=0), col= "grey20", lty=2) +
+  geom_point(aes( fill=spei_12), size = 2, pch=21)+
+  geom_smooth(data= subset(plotting_CWV, spei12_pval <= 0.05 & trait_name %in% c("height", "RDMC", "RMR")), 
+              col="black", method=lm) +
+  #geom_smooth(data = subset(plotting_CWV, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
+  labs(y = "Functional trait Community Weighted Variance (CWV) value", x="Annual SPEI (Sep-Aug)") +
+  scale_fill_distiller(name= "SPEI", palette = "RdYlBu", direction = 1)+
+  facet_grid(trait_name~., scales = "free_y")+ 
+  theme(legend.position = "none",
+        strip.text = element_blank())
+
+
+present_current_CWV_spei_panel
+
+#subsetted CWV lagged spei panel fig for presentation (FINAL)
+present_lag_CWV_spei_panel <- ggplot(subset(plotting_CWV, trait_name %in% c("height", "RDMC", "RMR")), aes(x=lagged_spei12, y=value))+
+  geom_vline(aes(xintercept=0), col= "grey20", lty=2) +
+  geom_point(aes( fill=lagged_spei12), size = 2, pch=21)+
+  geom_smooth(data= subset(plotting_CWV, lag_spei12_pval <= 0.05), col="black", method=lm)+
+  #geom_smooth(data = subset(plotting_CWV, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
+  labs(y="Functional trait Community Weighted Variance (CWV) value", x="Lagged annual SPEI (t-1)") +
+  scale_fill_distiller(name="SPEI", palette = "RdYlBu", direction = 1)+
+  facet_grid(trait_name~., scales = "free_y", labeller=as_labeller(trait_heading, label_wrap_gen(width=15)))+
+  theme(legend.title = element_text(size = 10),axis.title.y = element_blank(), axis.text.y = element_blank(),
+        axis.text = element_text(face="bold"))
+
+present_lag_CWV_spei_panel
+
+#create CWV plot figure for presentation (FINAL)
+Present_CWV_Fig <-plot_grid(present_current_CWV_spei_panel, present_lag_CWV_spei_panel,
           ncol = 2, 
           align = "h",
           rel_widths = c(0.95,1)) #make left hand side plot a little wider because it has the y-axis label
 
+Present_CWV_Fig
 
 # -- EDIT MODEL OUTPUT TABLE 
 intercepts_only <- coeff_df %>%
@@ -485,7 +511,101 @@ write_csv(CWM_final_table, " add google drive ")
 #colnames(CWM_final_table) <- paste0(casefold(substr(colnames(CWM_final_table),1,1), upper =T),
 #                                    substr(colnames(CWM_final_table),2,nchar(colnames(CWM_final_table))))
                                     
-                                    
+#-----FINAL CWM FIGURES------
+#pause to add model variables to CWM figures DF
+plotting_CWM <- subset(tranCWM_figures, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")) %>%
+  left_join(subset(model_df, dataset == "tranCWM_regressions" & grepl(" spei_12", model)), by = c("trait_name" = "y")) %>%
+  rename(spei12_pval = model.pval,
+         spei12_r2 = adj.r2) %>%
+  left_join(subset(model_df, dataset == "tranCWM_regressions" & grepl("lagged_spei12", model)), by = c("trait_name" = "y", "dataset")) %>%
+  rename(lag_spei12_pval = model.pval,
+         lag_spei12_r2 = adj.r2)
+
+#CWM current spei panel plot  (FINAL)
+current_tranCWM_spei_panel <- ggplot(subset(plotting_CWM, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
+                                     mapping = aes( x=spei_12, y=value))+
+  geom_vline(aes(xintercept=0), col= "grey20", lty=2) +
+  geom_point(aes(fill=spei_12), size = 2, pch=21)+
+  geom_smooth(data= subset(plotting_CWM, spei12_pval <= 0.05), col="black", method=lm)+
+  #geom_smooth(data = subset(plotting_CWM, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
+  labs(y = "Functional trait Community Weighted Mean (CWM) value",
+       x = "Annual SPEI (Sep-Aug)",
+       title = "Transect level Community Weighted Means and Annual SPEI")+
+  scale_fill_distiller(name="Annual\nSPEI", palette = "RdYlBu", direction = 1, guide = FALSE)+
+  facet_grid(trait_name~., scales = "free_y") +
+  theme(legend.position = "none",
+        strip.text = element_blank())
+
+current_tranCWM_spei_panel
+
+#CWM lagged spei panel plot (FINAL)
+lagged_tranCWM_spei_panel_ <- ggplot(subset(plotting_CWM, trait_name%in% c("final_height_cm", "RMR", "SLA", "RDMC", "seed_mass")), 
+                                           mapping = aes( x=lagged_spei12, y=value))+
+  geom_vline(aes(xintercept=0), col= "grey20", lty=2) +
+  geom_point(aes(fill=lagged_spei12), size = 2, pch=21)+
+  geom_smooth(data= subset(plotting_CWM, lag_spei12_pval <= 0.05), col="black", method=lm)+
+  #geom_smooth(data = subset(plotting_CWV, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
+  labs(y = NULL,
+       x = "Lagged annual SPEI (t-1)",
+       title = "Transect level Community Weighted Means and SPEI lagged one year") +
+  scale_fill_distiller(name="SPEI", palette = "RdYlBu", direction = 1)+
+  facet_grid(trait_name~., scales = "free_y", labeller=as_labeller(trait_heading, label_wrap_gen(width=15)))+
+  theme(legend.title = element_text(size = 10),axis.title.y = element_blank(), axis.text.y = element_blank(),
+        axis.text = element_text(face="bold"))
+lagged_tranCWM_spei_panel_
+
+# plot current and lagged CWM spei panels side by side (FINAl FIG FOR THESIS DRAFT)
+Final_CWM_Fig <-plot_grid(current_tranCWM_spei_panel, lagged_tranCWM_spei_panel_,
+          ncol = 2, 
+          align = "h",
+          rel_widths = c(0.95,1)) #make left hand side plot a little wider because it has the y-axis label
+
+Final_CWM_Fig
+
+#plot CWM plot grid subset for presentation
+#subset CWM current spei (FINAL)
+present_current_tranCWM_spei_panel <- ggplot(subset(plotting_CWM, trait_name%in% c("final_height_cm", "RMR", "RDMC")), 
+                                     mapping = aes( x=spei_12, y=value))+
+  geom_vline(aes(xintercept=0), col= "grey20", lty=2) +
+  geom_point(aes(fill=spei_12), size = 2, pch=21)+
+  geom_smooth(data= subset(plotting_CWM, spei12_pval <= 0.05), col="black", method=lm)+
+  #geom_smooth(data = subset(plotting_CWM, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
+  labs(y = "Functional trait Community Weighted Mean (CWM) value",
+       x = "Annual SPEI (Sep-Aug)",
+       title = "Transect level Community Weighted Means and Annual SPEI")+
+  scale_fill_distiller(name="Annual\nSPEI", palette = "RdYlBu", direction = 1, guide = FALSE)+
+  facet_grid(trait_name~., scales = "free_y") +
+  theme(legend.position = "none",
+        strip.text = element_blank())
+
+present_current_tranCWM_spei_panel
+
+#subset CWM lagged spei for presentation (FINAL)
+present_lagged_tranCWM_spei_panel_ <- ggplot(subset(plotting_CWM, trait_name%in% c("final_height_cm", "RMR", "RDMC")), 
+                                     mapping = aes( x=lagged_spei12, y=value))+
+  geom_vline(aes(xintercept=0), col= "grey20", lty=2) +
+  geom_point(aes(fill=lagged_spei12), size = 2, pch=21)+
+  geom_smooth(data= subset(plotting_CWM, lag_spei12_pval <= 0.05), col="black", method=lm)+
+  #geom_smooth(data = subset(plotting_CWV, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
+  labs(y = NULL,
+       x = "Lagged annual SPEI (t-1)",
+       title = "Transect level Community Weighted Means and SPEI lagged one year") +
+  scale_fill_distiller(name="SPEI", palette = "RdYlBu", direction = 1)+
+  facet_grid(trait_name~., scales = "free_y", labeller=as_labeller(trait_heading, label_wrap_gen(width=15)))+
+  theme(legend.title = element_text(size = 10),axis.title.y = element_blank(), axis.text.y = element_blank(),
+        axis.text = element_text(face="bold"))
+present_lagged_tranCWM_spei_panel_
+
+#create CWM plot figure for presentation (FINAL)
+Present_CWM_Fig <-plot_grid(present_current_tranCWM_spei_panel, present_lagged_tranCWM_spei_panel_,
+          ncol = 2, 
+          align = "h",
+          rel_widths = c(0.95,1)) #make left hand side plot a little wider because it has the y-axis label
+
+Present_CWM_Fig
 
 # write out all final figures
-ggsave("./exploratory_analysis/figures/area7_LDMC_fig.pdf", area7_LDMC_precip_fig)
+ggsave("./exploratory_analysis/figures/Final_CWV_Fig.pdf", Final_CWV_Fig)
+ggsave("./exploratory_analysis/figures/Final_CWM_Fig.pdf", Final_CWM_Fig)
+ggsave("./exploratory_analysis/figures/Present_CWM_Fig.pdf", Present_CWM_Fig)
+ggsave("./exploratory_analysis/figures/Present_CWV_Fig.pdf", Present_CWV_Fig)
