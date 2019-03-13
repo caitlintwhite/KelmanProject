@@ -407,6 +407,7 @@ plotting_CWV <- subset(CWV_figures, trait_name%in% c("height", "RMR", "SLA", "RD
 
 #CWV current spei panel figure (FINAL)
 current_CWV_spei_panel<- ggplot(plotting_CWV, aes(x=spei_12, y=value))+
+  geom_vline(aes(xintercept=0), col= "grey20", lty=2) +
   geom_point(aes( fill=spei_12), size = 2, pch=21)+
   geom_smooth(data= subset(plotting_CWV, spei12_pval <= 0.05), col="black", method=lm) +
   #geom_smooth(data = subset(plotting_CWV, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
@@ -600,7 +601,7 @@ present_lagged_tranCWM_spei_panel_
 Present_CWM_Fig <-plot_grid(present_current_tranCWM_spei_panel, present_lagged_tranCWM_spei_panel_,
           ncol = 2, 
           align = "h",
-          rel_widths = c(0.95,1)) #make left hand side plot a little wider because it has the y-axis label
+          rel_widths = c(0.85,.95)) #make left hand side plot a little wider because it has the y-axis label
 
 Present_CWM_Fig
 
