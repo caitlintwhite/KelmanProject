@@ -572,8 +572,7 @@ present_current_tranCWM_spei_panel <- ggplot(subset(plotting_CWM, trait_name%in%
   geom_smooth(data= subset(plotting_CWM, spei12_pval <= 0.05), col="black", method=lm)+
   #geom_smooth(data = subset(plotting_CWM, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
   labs(y = "Functional trait Community Weighted Mean (CWM) value",
-       x = "Annual SPEI (Sep-Aug)",
-       title = "Transect level Community Weighted Means and Annual SPEI")+
+       x = "Annual SPEI (Sep-Aug)") +
   scale_fill_distiller(name="Annual\nSPEI", palette = "RdYlBu", direction = 1, guide = FALSE)+
   facet_grid(trait_name~., scales = "free_y") +
   theme(legend.position = "none",
@@ -589,8 +588,7 @@ present_lagged_tranCWM_spei_panel_ <- ggplot(subset(plotting_CWM, trait_name%in%
   geom_smooth(data= subset(plotting_CWM, lag_spei12_pval <= 0.05), col="black", method=lm)+
   #geom_smooth(data = subset(plotting_CWV, spei12_pval > 0.05), col="black", method = lm, lty=2, se=F)+
   labs(y = NULL,
-       x = "Lagged annual SPEI (t-1)",
-       title = "Transect level Community Weighted Means and SPEI lagged one year") +
+       x = "Lagged annual SPEI (t-1)") +
   scale_fill_distiller(name="SPEI", palette = "RdYlBu", direction = 1)+
   facet_grid(trait_name~., scales = "free_y", labeller=as_labeller(trait_heading, label_wrap_gen(width=15)))+
   theme(legend.title = element_text(size = 10),axis.title.y = element_blank(), axis.text.y = element_blank(),
