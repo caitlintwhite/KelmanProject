@@ -43,6 +43,7 @@ trait_dat <- read.csv(paste0(gdrive, "/KelmanProject/Data/traits_mature_w_seedma
 spp_lookup <- read.csv(paste0(gdrive, "/KelmanProject/Data/tgsna_trait_spp_lookup.csv"))
 clim_dat <- read.csv(paste0(gdrive, "/KelmanProject/Data/boulder_climate.csv"))
 
+plot(trait_dat$SRL, trait_dat$Rdiam)
 
 # did all datasets read in as expected?
 ## bos xeric tallgrass cover data
@@ -161,6 +162,13 @@ abundance <- abundance[!colnames(abundance) %in% c("sitekey", "Year", "transect_
 # convert to relative abundance
 rel_abundance <- decostand(abundance, 'total')
 
+view(rel_abundance$poaaga)
+poaaga <- data.frame(rel_abundance)
+poaaga <- data.frame(poaaga$poaaga)
+
+poaaga_spei <- cbind(poaaga,lag(poolCWM_climate_merged_W$spei_12),poolCWM_climate_merged_W$spei_12)
+
+plot(poaaga_spei$`lag(poolCWM_climate_merged_W$spei_12)`, poaaga_spei$poaaga.poaaga)
 # check that relative abundances add to 1
 apply(rel_abundance, 1, sum)
 sort(apply(rel_abundance, 2, sum))
@@ -440,6 +448,14 @@ Enviro_variables_overT_panel
 
 #creating correlation matrix for CWM traits
 traits_correlation <- cor(bos_cwm[traits])
+#scatterplot of CWM root traits at community level
+
+#points are years
+pairs(bos_cwm[, c(5:7)])
+
+#plot species level trait scatterplot 
+pairs(trait_dat[,c(12:14)])
+
 
 #save figures to github
 ggsave("./exploratory_analysis/figures/area7_LDMC_fig.pdf", area7_LDMC_precip_fig)

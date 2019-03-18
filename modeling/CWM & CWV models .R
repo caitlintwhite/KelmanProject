@@ -599,7 +599,7 @@ present_lagged_tranCWM_spei_panel_
 Present_CWM_Fig <-plot_grid(present_current_tranCWM_spei_panel, present_lagged_tranCWM_spei_panel_,
           ncol = 2, 
           align = "h",
-          rel_widths = c(0.85,.95)) #make left hand side plot a little wider because it has the y-axis label
+          rel_widths = c(.8,.9)) #make left hand side plot a little wider because it has the y-axis label
 
 Present_CWM_Fig
 
