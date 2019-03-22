@@ -432,19 +432,21 @@ templm <- lm(value ~ Year, data = subset(envplot_df, trait_name == "tmean_12"))
 summary(templm)
 plot(templm)
 summary(lm(value ~ Year, data = subset(envplot_df, trait_name == "precip_12")))
+
+#-------- boulder environment over time panel plot------- 
 Enviro_variables_overT_panel <- ggplot(envplot_df, mapping = aes(Year, value))+
-  geom_hline(data=subset(envplot_df, trait_name == "spei_12"), aes(yintercept =0), col = "grey50") +
+  geom_hline(data=subset(envplot_df, trait_name == "spei_12"), aes(yintercept =0), col="grey50", linetype=2) +
   geom_line()+
   geom_point(size=.5)+
   geom_point(data=subset(envplot_df, trait_name == "spei_12"), aes(Year, value, col = value), size=.5)+
   geom_smooth(data=subset(envplot_df, trait_name == "tmean_12"), aes(Year, value), method=lm)+
   scale_x_continuous(breaks = seq(1992, 2016, by = 2))+
+  scale_fill_distiller(name="Annual\nSPEI", palette = "RdYlBu", direction = 1, guide = FALSE)+
   theme(axis.text.x = element_text(angle=45, hjust = 1))+
   facet_grid(traitorder~., scales = "free_y", labeller = as_labeller(climlabels))
 
 
 Enviro_variables_overT_panel
-
 
 #creating correlation matrix for CWM traits
 traits_correlation <- cor(bos_cwm[traits])
@@ -454,7 +456,9 @@ traits_correlation <- cor(bos_cwm[traits])
 pairs(bos_cwm[, c(5:7)])
 
 #plot species level trait scatterplot 
-pairs(trait_dat[,c(12:14)])
+ pairs(trait_dat[,c(12:14)])
+
+
 
 
 #save figures to github
